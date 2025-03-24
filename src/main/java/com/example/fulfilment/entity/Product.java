@@ -35,7 +35,6 @@ public class Product {
     @Nullable
     private String itemName;
 
-    // Optional returning getters
     public Optional<String> getManufacturerSkuOptional() {
         return Optional.ofNullable(manufacturerSku);
     }
