@@ -18,10 +18,26 @@ repositories {
 }
 
 dependencies {
+	// Spring Boot dependencies
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+	// Lombok dependencies
+	compileOnly 'org.projectlombok:lombok'  // Used only for compilation, not included in runtime
+	annotationProcessor 'org.projectlombok:lombok'  // Needed for annotation processing
+
+	// Lombok dependencies for tests
+	testCompileOnly 'org.projectlombok:lombok'
+	testAnnotationProcessor 'org.projectlombok:lombok'
+
+	// SQLite (for the initial phase)
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+	implementation 'org.xerial:sqlite-jdbc:3.45.1.0' // SQLite driver
+	implementation 'com.zaxxer:HikariCP' // Connection pooling
+	implementation 'org.hibernate.orm:hibernate-community-dialects:6.4.0.Final'
 }
+
 
 tasks.named('test') {
 	useJUnitPlatform()
