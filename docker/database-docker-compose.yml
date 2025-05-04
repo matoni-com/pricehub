@@ -1,0 +1,11 @@
+version: '2.1'
+
+services:
+  database:
+    image: postgres:12.0
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+      POSTGRES_DB: fulfilment_db
