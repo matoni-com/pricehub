@@ -17,6 +17,12 @@ repositories {
 	mavenCentral()
 }
 
+// ./gradlew bootRun will always run with the local profile unless overridden
+bootRun {
+	args = ["--spring.profiles.active=local"]
+}
+
+
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
@@ -27,6 +33,12 @@ dependencies {
 
 	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'
+
+	// SQLite (for the initial phase)
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+	implementation 'org.xerial:sqlite-jdbc:3.45.1.0' // SQLite driver
+	implementation 'com.zaxxer:HikariCP' // Connection pooling
+	implementation 'org.hibernate.orm:hibernate-community-dialects:6.4.0.Final'
 
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
