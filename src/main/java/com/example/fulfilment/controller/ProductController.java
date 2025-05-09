@@ -1,7 +1,11 @@
 package com.example.fulfilment.controller;
 
+import com.example.fulfilment.controller.dto.ProductCreateRequest;
+import com.example.fulfilment.controller.dto.ProductResponse;
 import com.example.fulfilment.entity.Product;
 import com.example.fulfilment.service.ProductService;
+import com.example.fulfilment.service.dto.ProductCreateCommand;
+import com.example.fulfilment.service.dto.ProductResult;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,20 +22,26 @@ public class ProductController {
     }
 
     @PostMapping
-    public ResponseEntity<Product> createProduct(@RequestBody Product product) {
-        Product savedProduct = productService.saveProduct(product);
-        return ResponseEntity.ok(savedProduct);
+    public ResponseEntity<ProductResponse> createProduct(@RequestBody ProductCreateRequest request) {
+        ProductCreateCommand productCreateCommand = ProductControllerMapper.toCommand(request);
+        ProductResult savedProduct = productService.saveProduct(productCreateCommand);
+        ProductResponse productResponse = ProductControllerMapper.fromProductResult(savedProduct);
+        return ResponseEntity.ok(productResponse);
     }
 
     @GetMapping
-    public ResponseEntity<List<Product>> getAllProducts() {
-        List<Product> products = productService.getAllProducts();
-        return ResponseEntity.ok(products);
+    public ResponseEntity<List<ProductResponse>> getAllProducts() {
+        List<ProductResult> products = productService.getAllProducts();
+        List<ProductResponse> productResponses = products.stream()
+                .map(ProductControllerMapper::fromProductResult)
+                .toList();
+        return ResponseEntity.ok(productResponses);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Product> getProductById(@PathVariable Long id) {
+    public ResponseEntity<ProductResponse> getProductById(@PathVariable Long id) {
         return productService.getProductById(id)
+                .map(ProductControllerMapper::fromProductResult)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }

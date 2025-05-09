@@ -1,6 +1,7 @@
 package com.example.fulfilment.controller;
 
 import com.example.fulfilment.common.BaseIntegrationSuite;
+import com.example.fulfilment.controller.dto.ProductCreateRequest;
 import com.example.fulfilment.entity.Product;
 import com.example.fulfilment.repository.ProductRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -19,6 +20,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import org.junit.jupiter.api.BeforeEach;
 
 @AutoConfigureMockMvc
+
 class ProductControllerIntegrationTest extends BaseIntegrationSuite {
 
     @Autowired
@@ -37,7 +39,7 @@ class ProductControllerIntegrationTest extends BaseIntegrationSuite {
 
     @Test
     void createProduct_shouldPersistProductToDatabase() throws Exception {
-        Product product = new Product();
+        ProductCreateRequest product = new ProductCreateRequest();
         product.setMerchantCodeptId("merchant1");
         product.setWarehouseCodeptId("warehouse1");
         product.setMerchantSku("sku123");

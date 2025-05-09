@@ -6,5 +6,7 @@ CREATE TABLE products (
     manufacturer_sku VARCHAR(255),
     manufacturer_name VARCHAR(255),
     ean VARCHAR(255),
-    item_name VARCHAR(255)
+    item_name VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
