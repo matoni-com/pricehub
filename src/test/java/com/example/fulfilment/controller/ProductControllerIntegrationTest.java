@@ -7,7 +7,6 @@ import com.example.fulfilment.repository.ProductRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -18,8 +17,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import org.junit.jupiter.api.BeforeEach;
-
-@AutoConfigureMockMvc
 
 class ProductControllerIntegrationTest extends BaseIntegrationSuite {
 
@@ -82,4 +79,33 @@ class ProductControllerIntegrationTest extends BaseIntegrationSuite {
                 .andExpect(jsonPath("$[0].itemName").value("Test Product"));
     }
 
+    @Test
+    void getProductById_shouldReturnProductResponse() throws Exception {
+        // given
+        Product product = new Product();
+        product.setMerchantCodeptId("merchant-123");
+        product.setWarehouseCodeptId("warehouse-456");
+        product.setMerchantSku("sku-789");
+        product.setItemName("Sample Product");
+
+        Product savedProduct = productRepository.save(product);
+
+        // when + then
+        mockMvc.perform(get("/products/" + savedProduct.getId()))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.merchantCodeptId").value("merchant-123"))
+                .andExpect(jsonPath("$.merchantSku").value("sku-789"))
+                .andExpect(jsonPath("$.itemName").value("Sample Product"));
+    }
+
+    @Test
+    void getAllProducts_shouldReturnEmptyListWhenNoProductsExist() throws Exception {
+        // when + then
+        mockMvc.perform(get("/products"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$.length()").value(0));
+    }
 }
