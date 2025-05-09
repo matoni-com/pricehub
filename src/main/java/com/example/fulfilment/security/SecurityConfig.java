@@ -1,5 +1,6 @@
 package com.example.fulfilment.security;
 
+import com.example.fulfilment.security.filters.JwtAuthenticationFilter;
 import io.jsonwebtoken.Jwts;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -11,6 +12,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import javax.crypto.SecretKey;
 
@@ -21,8 +23,8 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
-    @Bean
-    public AuthenticationManager maggieAuthManager(
+    @Bean(name = "maggieUsernamePassword")
+    public AuthenticationManager maggieUsernamePasswordAuthManager(
             BCryptPasswordEncoder passwordEncoder,
             MaggieUserDetailsService maggieUserDetailsService,
             HttpSecurity http
@@ -38,18 +40,32 @@ public class SecurityConfig {
         return authManagerBuilder.build();
     }
 
+    @Bean(name = "maggieJwt")
+    public AuthenticationManager maggieJwtAuthManager(HttpSecurity http, JwtAuthenticationProvider provider) throws Exception {
+        AuthenticationManagerBuilder authManagerBuilder =
+                http.getSharedObject(AuthenticationManagerBuilder.class);
+        authManagerBuilder.authenticationProvider(provider);
+
+        return authManagerBuilder.build();
+    }
+
     @Bean
     public SecretKey jwtSignatureKey() {
         return Jwts.SIG.HS256.key().build();
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationFilter filter) throws Exception {
+        // TODO: add exception handling
         return http
+                .securityMatcher("/web/**", "/authenticate", "/hello")
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(authorizeRequests ->
-                        authorizeRequests.requestMatchers(HttpMethod.POST, "/authenticate").permitAll()
+                        authorizeRequests
+                                .requestMatchers(HttpMethod.POST, "/authenticate").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/hello").authenticated()
                 )
+                .addFilterBefore(filter, UsernamePasswordAuthenticationFilter.class)
                 .sessionManagement(sessionManagement -> sessionManagement.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .build();
     }
