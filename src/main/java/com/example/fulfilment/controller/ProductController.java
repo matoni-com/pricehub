@@ -6,6 +6,7 @@ import com.example.fulfilment.entity.Product;
 import com.example.fulfilment.service.ProductService;
 import com.example.fulfilment.service.dto.ProductCreateCommand;
 import com.example.fulfilment.service.dto.ProductResult;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,7 +23,7 @@ public class ProductController {
     }
 
     @PostMapping
-    public ResponseEntity<ProductResponse> createProduct(@RequestBody ProductCreateRequest request) {
+    public ResponseEntity<ProductResponse> createProduct(@Valid @RequestBody ProductCreateRequest request) {
         ProductCreateCommand productCreateCommand = ProductControllerMapper.toCommand(request);
         ProductResult savedProduct = productService.saveProduct(productCreateCommand);
         ProductResponse productResponse = ProductControllerMapper.fromProductResult(savedProduct);

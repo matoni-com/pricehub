@@ -7,6 +7,7 @@ import com.example.fulfilment.repository.ProductRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -18,6 +19,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import org.junit.jupiter.api.BeforeEach;
 
+@AutoConfigureMockMvc
 class ProductControllerIntegrationTest extends BaseIntegrationSuite {
 
     @Autowired
@@ -107,5 +109,59 @@ class ProductControllerIntegrationTest extends BaseIntegrationSuite {
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    void createProduct_shouldReturnBadRequestWhenMandatoryFieldsAreMissing() throws Exception {
+        ProductCreateRequest product = new ProductCreateRequest();
+        // Leaving all fields empty to trigger validation errors
+
+        mockMvc.perform(post("/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(product)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.merchantCodeptId").value("Merchant Codept ID is required"))
+                .andExpect(jsonPath("$.warehouseCodeptId").value("Warehouse Codept ID is required"))
+                .andExpect(jsonPath("$.merchantSku").value("Merchant SKU is required"))
+                .andExpect(jsonPath("$.manufacturerSku").value("Manufacturer SKU is required"))
+                .andExpect(jsonPath("$.manufacturerName").value("Manufacturer Name is required"))
+                .andExpect(jsonPath("$.ean").value("EAN is required"))
+                .andExpect(jsonPath("$.itemName").value("Item Name is required"));
+    }
+
+    @Test
+    void createProduct_shouldReturnBadRequestWhenEanIsInvalid() throws Exception {
+        ProductCreateRequest product = new ProductCreateRequest();
+        product.setMerchantCodeptId("merchant1");
+        product.setWarehouseCodeptId("warehouse1");
+        product.setMerchantSku("sku123");
+        product.setManufacturerSku("mSku123");
+        product.setManufacturerName("Test Manufacturer");
+        product.setEan("invalid-ean"); // Invalid EAN
+        product.setItemName("Test Item");
+
+        mockMvc.perform(post("/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(product)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.ean").value("EAN must be a 13-digit number"));
+    }
+
+    @Test
+    void createProduct_shouldReturnBadRequestWhenFieldExceedsMaxLength() throws Exception {
+        ProductCreateRequest product = new ProductCreateRequest();
+        product.setMerchantCodeptId("merchant1");
+        product.setWarehouseCodeptId("warehouse1");
+        product.setMerchantSku("a".repeat(51)); // Exceeds max length of 50
+        product.setManufacturerSku("mSku123");
+        product.setManufacturerName("Test Manufacturer");
+        product.setEan("1234567890123");
+        product.setItemName("Test Item");
+
+        mockMvc.perform(post("/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(product)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.merchantSku").value("Merchant SKU must not exceed 50 characters"));
     }
 }
