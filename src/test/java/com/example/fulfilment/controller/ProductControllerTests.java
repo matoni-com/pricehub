@@ -2,12 +2,22 @@ package com.example.fulfilment.controller;
 
 import com.example.fulfilment.common.BaseIntegrationSuite;
 import com.example.fulfilment.controller.dto.ProductCreateRequest;
+import com.example.fulfilment.entity.Authority;
 import com.example.fulfilment.entity.Product;
+import com.example.fulfilment.entity.User;
 import com.example.fulfilment.repository.ProductRepository;
+import com.example.fulfilment.repository.UserRepository;
+import com.example.fulfilment.security.jwt.JwtProvider;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -18,7 +28,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import org.junit.jupiter.api.BeforeEach;
 
-class ProductControllerIntegrationTest extends BaseIntegrationSuite {
+class ProductControllerTests extends BaseIntegrationSuite {
+
+    private String jwt;
 
     @Autowired
     private MockMvc mockMvc;
@@ -29,9 +41,36 @@ class ProductControllerIntegrationTest extends BaseIntegrationSuite {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private BCryptPasswordEncoder passwordEncoder;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private JwtProvider jwtProvider;
+
+    @Autowired
+    @Qualifier("maggieAuthManager")
+    private AuthenticationManager authManager;
+
     @BeforeEach
     void cleanDatabase() {
         productRepository.deleteAll();
+    }
+
+    @BeforeAll
+    void setUpUserAndJwt() {
+        if (userRepository.findByUsername("test").isEmpty()) {
+            User user = new User("test", passwordEncoder.encode("12345"));
+            user.addAuthority(new Authority("some_authority"));
+            userRepository.save(user);
+        }
+
+        Authentication auth = authManager.authenticate(
+                new UsernamePasswordAuthenticationToken("test", "12345")
+        );
+        jwt = jwtProvider.createToken(auth, 3600_000); // 1 hour
     }
 
     @Test
@@ -46,6 +85,7 @@ class ProductControllerIntegrationTest extends BaseIntegrationSuite {
         product.setItemName("Test Item");
 
         mockMvc.perform(post("/products")
+                        .header("Authorization", "Bearer " + jwt)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(product)))
                 .andExpect(status().isOk());
@@ -71,7 +111,7 @@ class ProductControllerIntegrationTest extends BaseIntegrationSuite {
         productRepository.save(product);
 
         // when + then
-        mockMvc.perform(get("/products"))
+        mockMvc.perform(get("/products").header("Authorization", "Bearer " + jwt))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$[0].merchantCodeptId").value("merchant-xyz"))
@@ -91,7 +131,7 @@ class ProductControllerIntegrationTest extends BaseIntegrationSuite {
         Product savedProduct = productRepository.save(product);
 
         // when + then
-        mockMvc.perform(get("/products/" + savedProduct.getId()))
+        mockMvc.perform(get("/products/" + savedProduct.getId()).header("Authorization", "Bearer " + jwt))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.merchantCodeptId").value("merchant-123"))
@@ -102,7 +142,7 @@ class ProductControllerIntegrationTest extends BaseIntegrationSuite {
     @Test
     void getAllProducts_shouldReturnEmptyListWhenNoProductsExist() throws Exception {
         // when + then
-        mockMvc.perform(get("/products"))
+        mockMvc.perform(get("/products").header("Authorization", "Bearer " + jwt))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$").isArray())
@@ -115,6 +155,7 @@ class ProductControllerIntegrationTest extends BaseIntegrationSuite {
         // Leaving all fields empty to trigger validation errors
 
         mockMvc.perform(post("/products")
+                        .header("Authorization", "Bearer " + jwt)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(product)))
                 .andExpect(status().isBadRequest())
@@ -139,6 +180,7 @@ class ProductControllerIntegrationTest extends BaseIntegrationSuite {
         product.setItemName("Test Item");
 
         mockMvc.perform(post("/products")
+                        .header("Authorization", "Bearer " + jwt)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(product)))
                 .andExpect(status().isBadRequest())
@@ -157,6 +199,7 @@ class ProductControllerIntegrationTest extends BaseIntegrationSuite {
         product.setItemName("Test Item");
 
         mockMvc.perform(post("/products")
+                        .header("Authorization", "Bearer " + jwt)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(product)))
                 .andExpect(status().isBadRequest())

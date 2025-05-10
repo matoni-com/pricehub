@@ -1,5 +1,5 @@
 CREATE TABLE products (
-    id SERIAL PRIMARY KEY,
+    id INT8 PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     merchant_codept_id VARCHAR(255) NOT NULL,
     warehouse_codept_id VARCHAR(255) NOT NULL,
     merchant_sku VARCHAR(255) NOT NULL,

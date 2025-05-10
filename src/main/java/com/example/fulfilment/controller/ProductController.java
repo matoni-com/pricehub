@@ -17,16 +17,18 @@ import java.util.List;
 public class ProductController {
 
     private final ProductService productService;
+    private final ProductControllerMapper productControllerMapper;
 
-    public ProductController(ProductService productService) {
+    public ProductController(ProductService productService, ProductControllerMapper productControllerMapper) {
         this.productService = productService;
+        this.productControllerMapper = productControllerMapper;
     }
 
     @PostMapping
     public ResponseEntity<ProductResponse> createProduct(@Valid @RequestBody ProductCreateRequest request) {
-        ProductCreateCommand productCreateCommand = ProductControllerMapper.toCommand(request);
+        ProductCreateCommand productCreateCommand = productControllerMapper.toCommand(request);
         ProductResult savedProduct = productService.saveProduct(productCreateCommand);
-        ProductResponse productResponse = ProductControllerMapper.fromProductResult(savedProduct);
+        ProductResponse productResponse = productControllerMapper.fromProductResult(savedProduct);
         return ResponseEntity.ok(productResponse);
     }
 
@@ -34,7 +36,7 @@ public class ProductController {
     public ResponseEntity<List<ProductResponse>> getAllProducts() {
         List<ProductResult> products = productService.getAllProducts();
         List<ProductResponse> productResponses = products.stream()
-                .map(ProductControllerMapper::fromProductResult)
+                .map(productControllerMapper::fromProductResult)
                 .toList();
         return ResponseEntity.ok(productResponses);
     }
@@ -42,7 +44,7 @@ public class ProductController {
     @GetMapping("/{id}")
     public ResponseEntity<ProductResponse> getProductById(@PathVariable Long id) {
         return productService.getProductById(id)
-                .map(ProductControllerMapper::fromProductResult)
+                .map(productControllerMapper::fromProductResult)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }

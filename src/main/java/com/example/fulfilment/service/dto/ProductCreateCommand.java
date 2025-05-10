@@ -1,14 +1,16 @@
 package com.example.fulfilment.service.dto;
 
-import lombok.Data;
+import lombok.Builder;
+import lombok.Value;
 
-@Data
+@Value
+@Builder
 public class ProductCreateCommand {
-    private String merchantCodeptId;
-    private String warehouseCodeptId;
-    private String merchantSku;
-    private String manufacturerSku;
-    private String manufacturerName;
-    private String ean;
-    private String itemName;
+    String merchantCodeptId;
+    String warehouseCodeptId;
+    String merchantSku;
+    String manufacturerSku;
+    String manufacturerName;
+    String ean;
+    String itemName;
 }

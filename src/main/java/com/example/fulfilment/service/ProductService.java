@@ -13,25 +13,27 @@ import java.util.Optional;
 public class ProductService {
 
     private final ProductRepository productRepository;
+    private final ProductServiceMapper productServiceMapper;
 
-    public ProductService(ProductRepository productRepository) {
+    public ProductService(ProductRepository productRepository, ProductServiceMapper productServiceMapper) {
         this.productRepository = productRepository;
+        this.productServiceMapper = productServiceMapper;
     }
 
     public ProductResult saveProduct(ProductCreateCommand command) {
-        Product product = ProductServiceMapper.toEntity(command);
+        Product product = productServiceMapper.toEntity(command);
         Product savedProduct = productRepository.save(product);
-        return ProductServiceMapper.toResult(savedProduct);
+        return productServiceMapper.toResult(savedProduct);
     }
 
     public List<ProductResult> getAllProducts() {
         return productRepository.findAll()
                 .stream()
-                .map(ProductServiceMapper::toResult)
+                .map(productServiceMapper::toResult)
                 .collect(Collectors.toList());
     }
 
     public Optional<ProductResult> getProductById(Long id) {
-        return productRepository.findById(id).map(ProductServiceMapper::toResult);
+        return productRepository.findById(id).map(productServiceMapper::toResult);
     }
 }
