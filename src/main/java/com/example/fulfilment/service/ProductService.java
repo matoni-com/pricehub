@@ -4,6 +4,7 @@ import com.example.fulfilment.entity.Product;
 import com.example.fulfilment.repository.ProductRepository;
 import com.example.fulfilment.service.dto.ProductCreateCommand;
 import com.example.fulfilment.service.dto.ProductResult;
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Service;
 import java.util.stream.Collectors;
 import java.util.List;
@@ -35,5 +36,12 @@ public class ProductService {
 
     public Optional<ProductResult> getProductById(Long id) {
         return productRepository.findById(id).map(productServiceMapper::toResult);
+    }
+
+    public void deactivateProduct(Long id) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Product not found with id: " + id));
+        product.setIsActive(false);
+        productRepository.save(product);
     }
 }

@@ -31,4 +31,6 @@ public class ProductCreateRequest {
     @NotBlank(message = "Item Name is required")
     @Size(max = 100, message = "Item Name must not exceed 100 characters")
     private String itemName;
+
+    private Boolean isActive = true;
 }

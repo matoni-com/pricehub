@@ -7,6 +7,7 @@ CREATE TABLE products (
     manufacturer_name VARCHAR(255),
     ean VARCHAR(255),
     item_name VARCHAR(255),
+    is_active BOOLEAN DEFAULT TRUE NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
 );

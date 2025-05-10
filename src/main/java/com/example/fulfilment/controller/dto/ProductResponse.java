@@ -16,6 +16,7 @@ public class ProductResponse {
     String manufacturerName;
     String ean;
     String itemName;
+    Boolean isActive;
     LocalDateTime createdAt;
     LocalDateTime updatedAt;
 }

@@ -26,6 +26,9 @@ public class Product {
     @Column(nullable = false)
     private String merchantSku;
 
+    @Column(nullable = false)
+    private Boolean isActive;
+
     @Nullable
     private String manufacturerSku;
 

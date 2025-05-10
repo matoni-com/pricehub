@@ -13,4 +13,5 @@ public class ProductCreateCommand {
     String manufacturerName;
     String ean;
     String itemName;
+    Boolean isActive;
 }

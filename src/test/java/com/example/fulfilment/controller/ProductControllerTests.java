@@ -20,11 +20,10 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import org.junit.jupiter.api.BeforeEach;
 
@@ -83,6 +82,7 @@ class ProductControllerTests extends BaseIntegrationSuite {
         product.setManufacturerName("Test Manufacturer");
         product.setEan("1234567890123");
         product.setItemName("Test Item");
+        product.setIsActive(true);
 
         mockMvc.perform(post("/products")
                         .header("Authorization", "Bearer " + jwt)
@@ -107,6 +107,7 @@ class ProductControllerTests extends BaseIntegrationSuite {
         product.setWarehouseCodeptId("warehouse-abc");
         product.setMerchantSku("sku-001");
         product.setItemName("Test Product");
+        product.setIsActive(true);
 
         productRepository.save(product);
 
@@ -127,6 +128,7 @@ class ProductControllerTests extends BaseIntegrationSuite {
         product.setWarehouseCodeptId("warehouse-456");
         product.setMerchantSku("sku-789");
         product.setItemName("Sample Product");
+        product.setIsActive(true);
 
         Product savedProduct = productRepository.save(product);
 
@@ -204,5 +206,27 @@ class ProductControllerTests extends BaseIntegrationSuite {
                         .content(objectMapper.writeValueAsString(product)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.merchantSku").value("Merchant SKU must not exceed 50 characters"));
+    }
+
+    @Test
+    void deactivateProduct_shouldSetIsActiveToFalse() throws Exception {
+        // given
+        Product product = new Product();
+        product.setMerchantCodeptId("merchant-123");
+        product.setWarehouseCodeptId("warehouse-456");
+        product.setMerchantSku("sku-789");
+        product.setItemName("Sample Product");
+        product.setIsActive(true);
+
+        Product savedProduct = productRepository.save(product);
+
+        // when
+        mockMvc.perform(patch("/products/" + savedProduct.getId() + "/deactivate")
+                        .header("Authorization", "Bearer " + jwt))
+                .andExpect(status().isNoContent());
+
+        // then
+        Product updatedProduct = productRepository.findById(savedProduct.getId()).orElseThrow();
+        assertThat(updatedProduct.getIsActive()).isFalse();
     }
 }
