@@ -9,3 +9,7 @@ Windows:
 `.\gradlew.bat bootRun`
 
 Open http://localhost:8080/hello
+
+If you want to run tests:
+
+`./gradlew test`
