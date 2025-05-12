@@ -28,7 +28,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String header = request.getHeader("Authorization");
 
         if (header == null || !header.startsWith("Bearer ")) {
-            filterChain.doFilter(request, response); // this will eventually result with AuthenticationException
+            // This means the http request is just passed on to the built-in AuthorizationFilter.
+            // We need to have a call to filterChain.doFilter and not just throw an exception, otherwise
+            // an http request without a token to endpoints marked as .permitAll() would be denied because
+            // an exception would be thrown and the request would never reach the built-in AuthorizationFilter.
+            filterChain.doFilter(request, response);
             return;
         }
 

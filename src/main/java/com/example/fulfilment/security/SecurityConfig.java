@@ -1,5 +1,7 @@
 package com.example.fulfilment.security;
 
+import com.example.fulfilment.security.exceptionhandling.RestAccessDeniedHandler;
+import com.example.fulfilment.security.exceptionhandling.RestAuthenticationEntryPoint;
 import com.example.fulfilment.security.filters.JwtAuthenticationFilter;
 import io.jsonwebtoken.Jwts;
 import org.springframework.context.annotation.Bean;
@@ -12,7 +14,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.access.ExceptionTranslationFilter;
 
 import javax.crypto.SecretKey;
 
@@ -55,18 +57,26 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationFilter filter) throws Exception {
-        // TODO: add exception handling
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationFilter jwtAuthFilter) throws Exception {
         return http
-                .securityMatcher("/web/**", "/authenticate", "/hello")
-                .csrf(csrf -> csrf.disable())
+                .securityMatcher("/web/**", "/authenticate", "/hello", "/products/**")
                 .authorizeHttpRequests(authorizeRequests ->
                         authorizeRequests
                                 .requestMatchers(HttpMethod.POST, "/authenticate").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/products/**").hasAuthority("READ_PRODUCT")
                                 .anyRequest().authenticated()
                 )
-                .addFilterBefore(filter, UsernamePasswordAuthenticationFilter.class)
+                // This will put the ExceptionTranslationFilter before the JwtAuthenticationFilter in the filter chain.
+                // This way ExceptionTranslationFilter can handle exceptions that are thrown in JwtAuthenticationFilter
+                // since they will bubble up through the call stack. ExceptionTranslationFilter handles the exceptions
+                // using the AuthenticationEntryPoint and AccessDeniedHandler that we configured below.
+                .addFilterAfter(jwtAuthFilter, ExceptionTranslationFilter.class)
+                .exceptionHandling(eh -> eh
+                        .authenticationEntryPoint(new RestAuthenticationEntryPoint("Invalid or missing token"))
+                        .accessDeniedHandler(new RestAccessDeniedHandler("Access denied"))
+                )
                 .sessionManagement(sessionManagement -> sessionManagement.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .csrf(csrf -> csrf.disable())
                 .build();
     }
 

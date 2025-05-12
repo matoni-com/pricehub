@@ -50,7 +50,7 @@ class ProductControllerTests extends BaseIntegrationSuite {
     private JwtProvider jwtProvider;
 
     @Autowired
-    @Qualifier("maggieAuthManager")
+    @Qualifier("maggieUsernamePassword")
     private AuthenticationManager authManager;
 
     @BeforeEach
@@ -62,7 +62,7 @@ class ProductControllerTests extends BaseIntegrationSuite {
     void setUpUserAndJwt() {
         if (userRepository.findByUsername("test").isEmpty()) {
             User user = new User("test", passwordEncoder.encode("12345"));
-            user.addAuthority(new Authority("some_authority"));
+            user.addAuthority(new Authority("READ_PRODUCT"));
             userRepository.save(user);
         }
 
