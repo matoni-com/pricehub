@@ -2,22 +2,13 @@ package com.example.fulfilment.controller;
 
 import com.example.fulfilment.common.BaseIntegrationSuite;
 import com.example.fulfilment.controller.dto.ProductCreateRequest;
-import com.example.fulfilment.entity.Authority;
 import com.example.fulfilment.entity.Product;
-import com.example.fulfilment.entity.User;
 import com.example.fulfilment.repository.ProductRepository;
-import com.example.fulfilment.repository.UserRepository;
-import com.example.fulfilment.security.jwt.JwtProvider;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.MediaType;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -29,8 +20,6 @@ import org.junit.jupiter.api.BeforeEach;
 
 class ProductControllerTests extends BaseIntegrationSuite {
 
-    private String jwt;
-
     @Autowired
     private MockMvc mockMvc;
 
@@ -40,39 +29,13 @@ class ProductControllerTests extends BaseIntegrationSuite {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @Autowired
-    private BCryptPasswordEncoder passwordEncoder;
-
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private JwtProvider jwtProvider;
-
-    @Autowired
-    @Qualifier("maggieUsernamePassword")
-    private AuthenticationManager authManager;
-
     @BeforeEach
     void cleanDatabase() {
         productRepository.deleteAll();
     }
 
-    @BeforeAll
-    void setUpUserAndJwt() {
-        if (userRepository.findByUsername("test").isEmpty()) {
-            User user = new User("test", passwordEncoder.encode("12345"));
-            user.addAuthority(new Authority("READ_PRODUCT"));
-            userRepository.save(user);
-        }
-
-        Authentication auth = authManager.authenticate(
-                new UsernamePasswordAuthenticationToken("test", "12345")
-        );
-        jwt = jwtProvider.createToken(auth, 3600_000); // 1 hour
-    }
-
     @Test
+    @WithMockUser
     void createProduct_shouldPersistProductToDatabase() throws Exception {
         ProductCreateRequest product = new ProductCreateRequest();
         product.setMerchantCodeptId("merchant1");
@@ -85,7 +48,6 @@ class ProductControllerTests extends BaseIntegrationSuite {
         product.setIsActive(true);
 
         mockMvc.perform(post("/products")
-                        .header("Authorization", "Bearer " + jwt)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(product)))
                 .andExpect(status().isOk());
@@ -100,6 +62,7 @@ class ProductControllerTests extends BaseIntegrationSuite {
     }
 
     @Test
+    @WithMockUser(authorities = {"READ_PRODUCT"})
     void getAllProducts_shouldReturnSavedProducts() throws Exception {
         // given
         Product product = new Product();
@@ -112,7 +75,7 @@ class ProductControllerTests extends BaseIntegrationSuite {
         productRepository.save(product);
 
         // when + then
-        mockMvc.perform(get("/products").header("Authorization", "Bearer " + jwt))
+        mockMvc.perform(get("/products"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$[0].merchantCodeptId").value("merchant-xyz"))
@@ -121,6 +84,7 @@ class ProductControllerTests extends BaseIntegrationSuite {
     }
 
     @Test
+    @WithMockUser(authorities = {"READ_PRODUCT"})
     void getProductById_shouldReturnProductResponse() throws Exception {
         // given
         Product product = new Product();
@@ -133,7 +97,7 @@ class ProductControllerTests extends BaseIntegrationSuite {
         Product savedProduct = productRepository.save(product);
 
         // when + then
-        mockMvc.perform(get("/products/" + savedProduct.getId()).header("Authorization", "Bearer " + jwt))
+        mockMvc.perform(get("/products/" + savedProduct.getId()))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.merchantCodeptId").value("merchant-123"))
@@ -142,9 +106,10 @@ class ProductControllerTests extends BaseIntegrationSuite {
     }
 
     @Test
+    @WithMockUser(authorities = {"READ_PRODUCT"})
     void getAllProducts_shouldReturnEmptyListWhenNoProductsExist() throws Exception {
         // when + then
-        mockMvc.perform(get("/products").header("Authorization", "Bearer " + jwt))
+        mockMvc.perform(get("/products"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$").isArray())
@@ -152,12 +117,12 @@ class ProductControllerTests extends BaseIntegrationSuite {
     }
 
     @Test
+    @WithMockUser
     void createProduct_shouldReturnBadRequestWhenMandatoryFieldsAreMissing() throws Exception {
         ProductCreateRequest product = new ProductCreateRequest();
         // Leaving all fields empty to trigger validation errors
 
         mockMvc.perform(post("/products")
-                        .header("Authorization", "Bearer " + jwt)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(product)))
                 .andExpect(status().isBadRequest())
@@ -171,6 +136,7 @@ class ProductControllerTests extends BaseIntegrationSuite {
     }
 
     @Test
+    @WithMockUser
     void createProduct_shouldReturnBadRequestWhenEanIsInvalid() throws Exception {
         ProductCreateRequest product = new ProductCreateRequest();
         product.setMerchantCodeptId("merchant1");
@@ -182,7 +148,6 @@ class ProductControllerTests extends BaseIntegrationSuite {
         product.setItemName("Test Item");
 
         mockMvc.perform(post("/products")
-                        .header("Authorization", "Bearer " + jwt)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(product)))
                 .andExpect(status().isBadRequest())
@@ -190,6 +155,7 @@ class ProductControllerTests extends BaseIntegrationSuite {
     }
 
     @Test
+    @WithMockUser
     void createProduct_shouldReturnBadRequestWhenFieldExceedsMaxLength() throws Exception {
         ProductCreateRequest product = new ProductCreateRequest();
         product.setMerchantCodeptId("merchant1");
@@ -201,7 +167,6 @@ class ProductControllerTests extends BaseIntegrationSuite {
         product.setItemName("Test Item");
 
         mockMvc.perform(post("/products")
-                        .header("Authorization", "Bearer " + jwt)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(product)))
                 .andExpect(status().isBadRequest())
@@ -209,6 +174,7 @@ class ProductControllerTests extends BaseIntegrationSuite {
     }
 
     @Test
+    @WithMockUser
     void deactivateProduct_shouldSetIsActiveToFalse() throws Exception {
         // given
         Product product = new Product();
@@ -221,8 +187,7 @@ class ProductControllerTests extends BaseIntegrationSuite {
         Product savedProduct = productRepository.save(product);
 
         // when
-        mockMvc.perform(patch("/products/" + savedProduct.getId() + "/deactivate")
-                        .header("Authorization", "Bearer " + jwt))
+        mockMvc.perform(patch("/products/" + savedProduct.getId() + "/deactivate"))
                 .andExpect(status().isNoContent());
 
         // then
