@@ -46,7 +46,7 @@ dependencies {
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 	testImplementation 'org.testcontainers:postgresql'
 	testImplementation 'org.springframework.security:spring-security-test'
-	implementation 'net.javacrumbs.json-unit:json-unit-spring:4.1.0'
+	testImplementation 'net.javacrumbs.json-unit:json-unit-spring:4.1.0'
 
 }
 
