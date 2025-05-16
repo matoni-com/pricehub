@@ -9,6 +9,7 @@ import org.mapstruct.MappingConstants;
 
 @Mapper(componentModel = MappingConstants.ComponentModel.SPRING)
 public interface AuthenticateUserMapper {
-    AuthenticateUserCommand toCommand(AuthenticateUserRequest authenticateUserRequest);
-    AuthenticateUserResponse toResponse(AuthenticateUserResult authenticateUserResult);
+  AuthenticateUserCommand toCommand(AuthenticateUserRequest authenticateUserRequest);
+
+  AuthenticateUserResponse toResponse(AuthenticateUserResult authenticateUserResult);
 }
