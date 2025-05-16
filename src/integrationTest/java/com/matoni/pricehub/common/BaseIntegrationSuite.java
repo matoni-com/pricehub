@@ -19,7 +19,7 @@ public abstract class BaseIntegrationSuite {
 
   private static final PostgreSQLContainer<?> POSTGRES =
       new PostgreSQLContainer<>(IMAGE)
-          .withDatabaseName("fulfilment_db")
+          .withDatabaseName("pricehub_db")
           .withUsername("testuser")
           .withPassword("testpass");
 

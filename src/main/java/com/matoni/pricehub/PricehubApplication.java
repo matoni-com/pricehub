@@ -8,9 +8,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 @SpringBootApplication
 @RestController
-public class FulfilmentApplication {
+public class PricehubApplication {
   public static void main(String[] args) {
-    SpringApplication.run(FulfilmentApplication.class, args);
+    SpringApplication.run(PricehubApplication.class, args);
   }
 
   @GetMapping("/hello")
