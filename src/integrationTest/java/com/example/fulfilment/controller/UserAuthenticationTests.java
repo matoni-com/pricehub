@@ -1,5 +1,9 @@
 package com.example.fulfilment.controller;
 
+import static net.javacrumbs.jsonunit.spring.JsonUnitResultMatchers.json;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 import com.example.fulfilment.common.BaseIntegrationSuite;
 import com.example.fulfilment.entity.Authority;
 import com.example.fulfilment.entity.User;
@@ -12,32 +16,29 @@ import org.springframework.http.MediaType;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static net.javacrumbs.jsonunit.spring.JsonUnitResultMatchers.json;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
 public class UserAuthenticationTests extends BaseIntegrationSuite {
 
-    @Autowired private MockMvc mockMvc;
-    @Autowired private BCryptPasswordEncoder passwordEncoder;
-    @Autowired private UserRepository userRepository;
+  @Autowired private MockMvc mockMvc;
+  @Autowired private BCryptPasswordEncoder passwordEncoder;
+  @Autowired private UserRepository userRepository;
 
-    @BeforeAll
-    public void populateUser() {
-        User user = new User("johndoe", passwordEncoder.encode("12345"));
-        user.addAuthority(new Authority("some_authority"));
+  @BeforeAll
+  public void populateUser() {
+    User user = new User("johndoe", passwordEncoder.encode("12345"));
+    user.addAuthority(new Authority("some_authority"));
 
-        userRepository.save(user);
-    }
+    userRepository.save(user);
+  }
 
-    @AfterAll
-    public void cleanUser() {
-        userRepository.deleteAll();
-    }
+  @AfterAll
+  public void cleanUser() {
+    userRepository.deleteAll();
+  }
 
-    @Test
-    public void authenticateWithValidCreds() throws Exception {
-        String expectedResponse = """
+  @Test
+  public void authenticateWithValidCreds() throws Exception {
+    String expectedResponse =
+        """
             {
                 "access_token": "${json-unit.any-string}",
                 "token_type": "Bearer",
@@ -45,39 +46,50 @@ public class UserAuthenticationTests extends BaseIntegrationSuite {
             }
             """;
 
-        mockMvc.perform(post("/authenticate")
+    mockMvc
+        .perform(
+            post("/authenticate")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("""
+                .content(
+                    """
                 {
                     "username": "johndoe",
                     "password": "12345"
                 }
-                """)).andExpect(status().isOk())
-                .andExpect(json().isEqualTo(expectedResponse));
-    }
+                """))
+        .andExpect(status().isOk())
+        .andExpect(json().isEqualTo(expectedResponse));
+  }
 
-    @Test
-    public void authenticateWithInvalidPassword() throws Exception {
-        mockMvc.perform(post("/authenticate")
+  @Test
+  public void authenticateWithInvalidPassword() throws Exception {
+    mockMvc
+        .perform(
+            post("/authenticate")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("""
+                .content(
+                    """
                 {
                     "username": "johndoe",
                     "password": "invalid"
                 }
-                """)).andExpect(status().isUnauthorized());
-    }
+                """))
+        .andExpect(status().isUnauthorized());
+  }
 
-    @Test
-    public void authenticateWithNonExistingUser() throws Exception {
-        mockMvc.perform(post("/authenticate")
+  @Test
+  public void authenticateWithNonExistingUser() throws Exception {
+    mockMvc
+        .perform(
+            post("/authenticate")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("""
+                .content(
+                    """
                 {
                     "username": "notexist",
                     "password": "12345"
                 }
-                """)).andExpect(status().isUnauthorized());
-    }
-
+                """))
+        .andExpect(status().isUnauthorized());
+  }
 }

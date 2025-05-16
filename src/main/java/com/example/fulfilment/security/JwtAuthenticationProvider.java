@@ -13,22 +13,21 @@ import org.springframework.stereotype.Component;
 @AllArgsConstructor
 public class JwtAuthenticationProvider implements AuthenticationProvider {
 
-    private JwtValidator jwtValidator;
+  private JwtValidator jwtValidator;
 
-    @Override
-    public Authentication authenticate(Authentication authentication) throws AuthenticationException {
-        String jwt = (String)authentication.getCredentials();
+  @Override
+  public Authentication authenticate(Authentication authentication) throws AuthenticationException {
+    String jwt = (String) authentication.getCredentials();
 
-        try {
-            return jwtValidator.validateToken(jwt);
-        } catch (InvalidJwtException e) {
-            throw new BadCredentialsException("Invalid JWT", e);
-        }
+    try {
+      return jwtValidator.validateToken(jwt);
+    } catch (InvalidJwtException e) {
+      throw new BadCredentialsException("Invalid JWT", e);
     }
+  }
 
-    @Override
-    public boolean supports(Class<?> authentication) {
-        return JwtAuthenticationToken.class.isAssignableFrom(authentication);
-    }
-
+  @Override
+  public boolean supports(Class<?> authentication) {
+    return JwtAuthenticationToken.class.isAssignableFrom(authentication);
+  }
 }

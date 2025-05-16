@@ -10,16 +10,16 @@ import lombok.*;
 @NoArgsConstructor
 @RequiredArgsConstructor
 public class Authority {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id")
-    private Long id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  @Column(name = "id")
+  private Long id;
 
-    @NonNull
-    @Column(name = "authority", nullable = false)
-    private String authority;
+  @NonNull
+  @Column(name = "authority", nullable = false)
+  private String authority;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id", referencedColumnName = "id")
-    private User user;
+  @ManyToOne
+  @JoinColumn(name = "user_id", referencedColumnName = "id")
+  private User user;
 }

@@ -18,24 +18,23 @@ import org.springframework.web.bind.annotation.RestController;
 @AllArgsConstructor
 public class UserAuthenticationController {
 
-    private AuthenticateUserMapper authenticateUserMapper;
-    private UserAuthenticationService service;
+  private AuthenticateUserMapper authenticateUserMapper;
+  private UserAuthenticationService service;
 
-    @PostMapping("/authenticate")
-    public ResponseEntity<AuthenticateUserResponse> authenticate(@RequestBody AuthenticateUserRequest request) {
+  @PostMapping("/authenticate")
+  public ResponseEntity<AuthenticateUserResponse> authenticate(
+      @RequestBody AuthenticateUserRequest request) {
 
-        AuthenticateUserCommand command = authenticateUserMapper.toCommand(request);
-        AuthenticateUserResult result = service.authenticate(command);
-        AuthenticateUserResponse response = authenticateUserMapper.toResponse(result);
+    AuthenticateUserCommand command = authenticateUserMapper.toCommand(request);
+    AuthenticateUserResult result = service.authenticate(command);
+    AuthenticateUserResponse response = authenticateUserMapper.toResponse(result);
 
-        return new ResponseEntity<>(response, HttpStatus.OK);
-    }
+    return new ResponseEntity<>(response, HttpStatus.OK);
+  }
 
-
-    // TODO: improve error handling
-    @ExceptionHandler(AuthenticationException.class)
-    public ResponseEntity<Object> handleAuthenticationException(AuthenticationException e) {
-        return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-    }
+  // TODO: improve error handling
+  @ExceptionHandler(AuthenticationException.class)
+  public ResponseEntity<Object> handleAuthenticationException(AuthenticationException e) {
+    return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+  }
 }
-

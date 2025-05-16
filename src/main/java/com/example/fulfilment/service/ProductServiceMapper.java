@@ -9,9 +9,10 @@ import org.mapstruct.MappingConstants;
 
 @Mapper(componentModel = MappingConstants.ComponentModel.SPRING)
 public interface ProductServiceMapper {
-    @Mapping(target = "id", ignore = true)
-    @Mapping(target = "createdAt", ignore = true)
-    @Mapping(target = "updatedAt", ignore = true)
-    Product toEntity(ProductCreateCommand command);
-    ProductResult toResult(Product product);
+  @Mapping(target = "id", ignore = true)
+  @Mapping(target = "createdAt", ignore = true)
+  @Mapping(target = "updatedAt", ignore = true)
+  Product toEntity(ProductCreateCommand command);
+
+  ProductResult toResult(Product product);
 }

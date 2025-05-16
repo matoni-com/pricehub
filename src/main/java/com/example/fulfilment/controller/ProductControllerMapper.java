@@ -9,6 +9,7 @@ import org.mapstruct.MappingConstants;
 
 @Mapper(componentModel = MappingConstants.ComponentModel.SPRING)
 public interface ProductControllerMapper {
-    ProductCreateCommand toCommand(ProductCreateRequest request);
-    ProductResponse fromProductResult(ProductResult result);
+  ProductCreateCommand toCommand(ProductCreateRequest request);
+
+  ProductResponse fromProductResult(ProductResult result);
 }

@@ -5,35 +5,34 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
+import java.util.List;
+import javax.crypto.SecretKey;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Component;
-
-import javax.crypto.SecretKey;
-import java.util.List;
 
 @Component
 public class JwtValidator {
 
-    private JwtParser parser;
+  private JwtParser parser;
 
-    public JwtValidator(SecretKey jwtSignatureKey) {
-        parser = Jwts.parser().verifyWith(jwtSignatureKey).build();
+  public JwtValidator(SecretKey jwtSignatureKey) {
+    parser = Jwts.parser().verifyWith(jwtSignatureKey).build();
+  }
+
+  public JwtAuthenticationToken validateToken(String jwt) throws InvalidJwtException {
+    Claims claims;
+
+    try {
+      claims = parser.parseSignedClaims(jwt).getPayload();
+    } catch (JwtException | IllegalArgumentException e) {
+      throw new InvalidJwtException("Invalid JWT", e);
     }
 
-    public JwtAuthenticationToken validateToken(String jwt) throws InvalidJwtException {
-        Claims claims;
+    String username = claims.getSubject();
 
-        try {
-            claims = parser.parseSignedClaims(jwt).getPayload();
-        } catch (JwtException | IllegalArgumentException e) {
-            throw new InvalidJwtException("Invalid JWT", e);
-        }
+    List<String> authorities = (List<String>) claims.get("authorities", List.class);
+    var grantedAuthorities = authorities.stream().map(SimpleGrantedAuthority::new).toList();
 
-        String username = claims.getSubject();
-
-        List<String> authorities = (List<String>) claims.get("authorities", List.class);
-        var grantedAuthorities = authorities.stream().map(SimpleGrantedAuthority::new).toList();
-
-        return new JwtAuthenticationToken(username, jwt, grantedAuthorities);
-    }
+    return new JwtAuthenticationToken(username, jwt, grantedAuthorities);
+  }
 }

@@ -3,6 +3,7 @@ plugins {
 	id 'org.springframework.boot' version '3.4.4'
 	id 'io.spring.dependency-management' version '1.1.7'
 	id 'org.unbroken-dome.test-sets' version '4.1.0'
+	id 'com.diffplug.spotless' version '7.0.3'
 }
 
 group = 'com.example'
@@ -16,6 +17,13 @@ java {
 
 repositories {
 	mavenCentral()
+}
+
+// Spotless code formatting configuration. Adds tasks spotlessCheck and spotlessApply.
+spotless {
+	java {
+		googleJavaFormat('1.15.0') // Use Google Java Format
+	}
 }
 
 bootRun {
@@ -64,6 +72,7 @@ tasks.named('test') {
 
 	// always run tests, even if inputs/outputs appear unchanged
 	outputs.upToDateWhen { false }
+	shouldRunAfter(tasks.named('spotlessCheck'))
 
 	testLogging {
 		// show all tests ("standardOut" and "standardError" used to show prints and logs that happen during tests)
@@ -90,5 +99,6 @@ tasks.named('integrationTest') {
 }
 
 tasks.named('check') {
+	dependsOn 'spotlessCheck' // add format checking to check task
 	dependsOn 'integrationTest' // add integrationTest task to check task (test task is by default a part of check task)
 }

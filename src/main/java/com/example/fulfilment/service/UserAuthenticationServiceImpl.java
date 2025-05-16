@@ -12,27 +12,25 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class UserAuthenticationServiceImpl implements UserAuthenticationService {
-    
-    private static final int EXPIRATION_PERIOD_IN_SECONDS = 60 * 10; // 10 minutes
-    private static final String TOKEN_TYPE = "Bearer";
 
-    @Autowired
-    @Qualifier("maggieUsernamePassword")
-    private AuthenticationManager maggieAuthManager;
+  private static final int EXPIRATION_PERIOD_IN_SECONDS = 60 * 10; // 10 minutes
+  private static final String TOKEN_TYPE = "Bearer";
 
-    @Autowired
-    private JwtProvider jwtProvider;
+  @Autowired
+  @Qualifier("maggieUsernamePassword")
+  private AuthenticationManager maggieAuthManager;
 
-    public AuthenticateUserResult authenticate(AuthenticateUserCommand authenticateUserCommand) {
-        Authentication auth = new UsernamePasswordAuthenticationToken(
-                authenticateUserCommand.getUsername(),
-                authenticateUserCommand.getPassword()
-        );
+  @Autowired private JwtProvider jwtProvider;
 
-        Authentication authenticated = maggieAuthManager.authenticate(auth);
+  public AuthenticateUserResult authenticate(AuthenticateUserCommand authenticateUserCommand) {
+    Authentication auth =
+        new UsernamePasswordAuthenticationToken(
+            authenticateUserCommand.getUsername(), authenticateUserCommand.getPassword());
 
-        String jwt = jwtProvider.createToken(authenticated, (long)EXPIRATION_PERIOD_IN_SECONDS * 1000);
+    Authentication authenticated = maggieAuthManager.authenticate(auth);
 
-        return new AuthenticateUserResult(jwt, TOKEN_TYPE, EXPIRATION_PERIOD_IN_SECONDS);
-    }
+    String jwt = jwtProvider.createToken(authenticated, (long) EXPIRATION_PERIOD_IN_SECONDS * 1000);
+
+    return new AuthenticateUserResult(jwt, TOKEN_TYPE, EXPIRATION_PERIOD_IN_SECONDS);
+  }
 }
