@@ -1,7 +1,7 @@
-package com.matoni.pricehub.price;
+package com.matoni.pricehub.price.entity;
 
 import com.matoni.pricehub.entity.Product;
-import com.matoni.pricehub.retailchain.store.Store;
+import com.matoni.pricehub.retailchain.entity.store.Store;
 import com.matoni.pricehub.utils.entity.TimestampedEntity;
 import jakarta.persistence.*;
 import java.math.BigDecimal;

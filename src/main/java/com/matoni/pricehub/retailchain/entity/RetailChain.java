@@ -1,4 +1,4 @@
-package com.matoni.pricehub.retailchain;
+package com.matoni.pricehub.retailchain.entity;
 
 import jakarta.persistence.*;
 import lombok.*;

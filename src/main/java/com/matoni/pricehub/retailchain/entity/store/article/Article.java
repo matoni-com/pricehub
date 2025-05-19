@@ -1,4 +1,4 @@
-package com.matoni.pricehub.retailchain.store.article;
+package com.matoni.pricehub.retailchain.entity.store.article;
 
 import com.matoni.pricehub.utils.entity.TimestampedEntity;
 import jakarta.persistence.*;
