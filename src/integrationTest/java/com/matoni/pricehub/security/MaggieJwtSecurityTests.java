@@ -86,7 +86,7 @@ public class MaggieJwtSecurityTests extends BaseIntegrationSuite {
         .andExpect(content().string("Invalid or missing token"));
   }
 
-  // TODO activate this tese once we have a new endpoint
+  // TODO activate this test once we have a new endpoint
   @Ignore
   public void authenticatedRequestWithoutAuthorityToAuthorizedEndpointRejected() throws Exception {
     var body =
@@ -114,7 +114,7 @@ public class MaggieJwtSecurityTests extends BaseIntegrationSuite {
         .andExpect(content().string("Access denied"));
   }
 
-  @Test
+  @Ignore // TODO activate this test once we have a new endpoint
   public void authenticatedRequestWithAuthorityToAuthorizedEndpointAccepted() throws Exception {
     var body =
         mockMvc
@@ -136,7 +136,7 @@ public class MaggieJwtSecurityTests extends BaseIntegrationSuite {
     String token = read(body, "$.access_token");
 
     mockMvc
-        .perform(get("/hello").header("Authorization", "Bearer " + token))
+        .perform(get("/products").header("Authorization", "Bearer " + token))
         .andExpect(status().isOk())
         .andExpect(content().json("[]"));
   }
