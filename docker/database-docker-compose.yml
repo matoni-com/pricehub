@@ -8,4 +8,4 @@ services:
     environment:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: pass
-      POSTGRES_DB: fulfilment_db
+      POSTGRES_DB: pricehub_db
