@@ -21,6 +21,20 @@ import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 import reactor.util.retry.Retry;
 
+/*
+The goal of this service is to:
+
+1) Go to the Lidl price page,
+
+2) Find all .zip file links,
+
+3) Download those .zip files concurrently using a thread pool,
+
+4) Retry downloads with backoff on failures,
+
+5) Use a .part temporary file, and rename it once successful.
+ */
+
 @Slf4j
 @Service
 public class CsvFileDownloadService {
