@@ -58,9 +58,7 @@ public class CsvFileDownloadService {
     Files.createDirectories(Paths.get(downloadDir));
     log.info("Ensured download directory exists: {}", downloadDir);
 
-    Document doc = Jsoup.connect(BASE_URL).get();
-    Elements links = doc.select("a[href$=.zip]");
-    List<String> zipUrls = links.stream().map(link -> link.absUrl("href")).toList();
+    List<String> zipUrls = getFullUrlsOfZipFiles();
 
     if (zipUrls.isEmpty()) {
       throw new IllegalStateException("No .zip file found on the page");
@@ -74,6 +72,13 @@ public class CsvFileDownloadService {
         .block();
 
     log.info("All .zip files downloaded successfully.");
+  }
+
+  private static List<String> getFullUrlsOfZipFiles() throws IOException {
+    Document doc = Jsoup.connect(BASE_URL).get();
+    Elements links = doc.select("a[href$=.zip]");
+    List<String> zipUrls = links.stream().map(link -> link.absUrl("href")).toList();
+    return zipUrls;
   }
 
   private Mono<Void> downloadFile(String zipUrl) {
