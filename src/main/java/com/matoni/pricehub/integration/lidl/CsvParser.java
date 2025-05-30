@@ -14,7 +14,7 @@ import java.util.*;
 import org.springframework.stereotype.Component;
 
 @Component
-public class LidlCsvParser {
+public class CsvParser {
 
   private static final Charset ENCODING = Charset.forName("windows-1250");
   private static final DateTimeFormatter DATE_FROM_FILENAME =
