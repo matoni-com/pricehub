@@ -1,18 +1,13 @@
 package com.matoni.pricehub.integration.lidl;
 
-import java.io.IOException;
 import java.net.URL;
 import java.nio.file.*;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.Executors;
 import lombok.extern.slf4j.Slf4j;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.select.Elements;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.buffer.DataBuffer;
-import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
@@ -44,11 +39,18 @@ public class CsvFileDownloadService {
   private final WebClient webClient;
   private final String downloadDir;
   private final Scheduler downloadScheduler;
+  private final LidlZipLinkParser linkParser;
+  private final ZipFileWriter zipFileWriter;
 
   public CsvFileDownloadService(
-      WebClient webClient, @Value("${lidl.csv.download-dir:downloads}") String downloadDir) {
+      WebClient webClient,
+      @Value("${lidl.csv.download-dir:downloads}") String downloadDir,
+      LidlZipLinkParser linkParser,
+      ZipFileWriter zipFileWriter) {
     this.webClient = webClient;
     this.downloadDir = downloadDir;
+    this.linkParser = linkParser;
+    this.zipFileWriter = zipFileWriter;
     this.downloadScheduler = Schedulers.fromExecutor(Executors.newFixedThreadPool(4));
   }
 
@@ -58,7 +60,7 @@ public class CsvFileDownloadService {
     Files.createDirectories(Paths.get(downloadDir));
     log.info("Ensured download directory exists: {}", downloadDir);
 
-    List<String> zipUrls = getFullUrlsOfZipFiles();
+    List<String> zipUrls = linkParser.findZipFileUrls();
 
     if (zipUrls.isEmpty()) {
       throw new IllegalStateException("No .zip file found on the page");
@@ -74,13 +76,6 @@ public class CsvFileDownloadService {
     log.info("All .zip files downloaded successfully.");
   }
 
-  private static List<String> getFullUrlsOfZipFiles() throws IOException {
-    Document doc = Jsoup.connect(BASE_URL).get();
-    Elements links = doc.select("a[href$=.zip]");
-    List<String> zipUrls = links.stream().map(link -> link.absUrl("href")).toList();
-    return zipUrls;
-  }
-
   private Mono<Void> downloadFile(String zipUrl) {
     return Mono.fromCallable(
             () -> {
@@ -94,33 +89,25 @@ public class CsvFileDownloadService {
   }
 
   private Mono<Void> downloadWithRetry(FileDownloadInfo info) {
-    return DataBufferUtils.write(
-            webClient
-                .get()
-                .uri(info.url())
-                .retrieve()
-                .bodyToFlux(DataBuffer.class)
-                .timeout(Duration.ofSeconds(30)), // timeout for entire download
-            info.tempPath(),
-            StandardOpenOption.CREATE)
-        .doOnSuccess(
-            unused -> {
-              try {
-                Files.move(info.tempPath(), info.targetPath(), StandardCopyOption.REPLACE_EXISTING);
-                log.info("Downloaded and saved to {}", info.targetPath());
-              } catch (IOException e) {
-                log.error("Failed to move file to final location: {}", info.targetPath(), e);
-              }
-            })
-        .doOnError(
-            e -> {
-              log.error("Download failed for {}: {}", info.url(), e.toString());
-              try {
-                Files.deleteIfExists(info.tempPath());
-              } catch (IOException ignored) {
-              }
-            })
-        .retryWhen(Retry.backoff(3, Duration.ofSeconds(2)).transientErrors(true));
+    Flux<DataBuffer> data =
+        webClient
+            .get()
+            .uri(info.url())
+            .retrieve()
+            .bodyToFlux(DataBuffer.class)
+            .timeout(Duration.ofSeconds(30));
+
+    return zipFileWriter
+        .writeToTempThenMove(data, info.tempPath(), info.targetPath())
+        .retryWhen(
+            Retry.backoff(3, Duration.ofSeconds(2))
+                .doBeforeRetry(
+                    retrySignal ->
+                        log.warn(
+                            "Retrying {} (attempt {}): {}",
+                            info.url(),
+                            retrySignal.totalRetries() + 1,
+                            retrySignal.failure().toString())));
   }
 
   private record FileDownloadInfo(String url, Path tempPath, Path targetPath) {}
