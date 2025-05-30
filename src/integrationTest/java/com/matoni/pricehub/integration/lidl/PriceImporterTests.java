@@ -15,7 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 public class PriceImporterTests extends BaseIntegrationSuite {
 
-  @Autowired private PriceImporterService priceImporterService;
+  @Autowired private PriceImportService priceImportService;
   @Autowired private RetailChainRepository retailChainRepository;
   @Autowired private PriceEntryRepository priceEntryRepository;
   @Autowired private StoreRepository storeRepository;
@@ -37,7 +37,7 @@ public class PriceImporterTests extends BaseIntegrationSuite {
     File file = new File(resource.toURI());
 
     // when
-    priceImporterService.importFromLidlCsv(file, lidl);
+    priceImportService.importFromLidlCsv(file, lidl);
 
     // then
     assertThat(priceEntryRepository.count()).isGreaterThan(0);

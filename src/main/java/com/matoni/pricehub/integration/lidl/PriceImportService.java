@@ -19,16 +19,16 @@ import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
-public class PriceImporterService {
+public class PriceImportService {
 
-  private final LidlCsvParser lidlCsvParser;
+  private final CsvParser csvParser;
   private final StoreService storeService;
   private final ArticleService articleService;
   private final PriceEntryRepository priceEntryRepository;
 
   public void importFromLidlCsv(File file, RetailChain chain)
       throws IOException, CsvValidationException {
-    String storeCode = lidlCsvParser.extractStoreCode(file.getName());
+    String storeCode = csvParser.extractStoreCode(file.getName());
     String address = extractAddressFromFilename(file.getName());
     String city = extractCityFromFilename(file.getName());
     String postalCode = extractPostalCodeFromFilename(file.getName());
@@ -38,7 +38,7 @@ public class PriceImporterService {
 
     List<PriceEntry> entries = new ArrayList<>();
 
-    for (PriceEntry row : lidlCsvParser.parse(file, store)) {
+    for (PriceEntry row : csvParser.parse(file, store)) {
       Article article =
           articleService.findOrCreate(
               row.getArticle().getProductCode(),
