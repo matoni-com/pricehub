@@ -11,7 +11,7 @@ version = '0.0.1-SNAPSHOT'
 
 java {
 	toolchain {
-		languageVersion = JavaLanguageVersion.of(17)
+		languageVersion = JavaLanguageVersion.of(21)
 	}
 }
 
@@ -22,7 +22,7 @@ repositories {
 // Spotless code formatting configuration. Adds tasks spotlessCheck and spotlessApply.
 spotless {
 	java {
-		googleJavaFormat('1.15.0') // Use Google Java Format
+		googleJavaFormat('1.17.0') // Use Google Java Format
 	}
 }
 
