@@ -31,6 +31,8 @@ public class PriceImportService {
       throws IOException, CsvValidationException {
 
     String storeCode = csvParser.extractStoreCode(file.getName());
+    System.out.printf("🧾 Store code for '%s' => %s%n", file.getName(), storeCode);
+
     String address = extractAddressFromFilename(file.getName());
     String city = extractCityFromFilename(file.getName());
     String postalCode = extractPostalCodeFromFilename(file.getName());

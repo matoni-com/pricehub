@@ -36,7 +36,7 @@ public class CsvParser {
   }
 
   private List<PriceEntry> parseInternal(File file, Store store, Encoding encoding)
-          throws IOException, CsvValidationException {
+      throws IOException, CsvValidationException {
 
     List<PriceEntry> entries = new ArrayList<>();
     Charset charset = encoding.charset;
@@ -47,7 +47,8 @@ public class CsvParser {
     try {
       priceDate = extractDateFromFilename(file.getName());
     } catch (Exception e) {
-      System.err.printf("❌ Could not extract date from filename: %s -> %s%n", file.getName(), e.getMessage());
+      System.err.printf(
+          "❌ Could not extract date from filename: %s -> %s%n", file.getName(), e.getMessage());
       return entries;
     }
 
@@ -55,9 +56,9 @@ public class CsvParser {
     int errorLogLimit = 10;
 
     try (CSVReader reader =
-                 new CSVReaderBuilder(new InputStreamReader(new FileInputStream(file), charset))
-                         .withCSVParser(new CSVParserBuilder().withSeparator(encoding.delimiter).build())
-                         .build()) {
+        new CSVReaderBuilder(new InputStreamReader(new FileInputStream(file), charset))
+            .withCSVParser(new CSVParserBuilder().withSeparator(encoding.delimiter).build())
+            .build()) {
 
       reader.readNext(); // skip header
       String[] row;
@@ -73,13 +74,22 @@ public class CsvParser {
         if (row.length < MIN_COLUMNS) continue;
 
         try {
-          BigDecimal retailPrice = parseBigDecimal(row[6], "retailPrice", lineNumber, file.getName());
-          BigDecimal pricePerUnit = parseBigDecimal(row[7], "pricePerUnit", lineNumber, file.getName());
-          BigDecimal anchorPrice = parseBigDecimal(row[10], "anchorPrice", lineNumber, file.getName());
+          int retailPriceIdx = encoding == Encoding.LIDL ? 5 : 6;
+          int pricePerUnitIdx = encoding == Encoding.LIDL ? 8 : 7;
+          int anchorPriceIdx = encoding == Encoding.LIDL ? 11 : 10;
+
+          BigDecimal retailPrice =
+              parseBigDecimal(row[retailPriceIdx], "retailPrice", lineNumber, file.getName());
+          BigDecimal pricePerUnit =
+              parseBigDecimal(row[pricePerUnitIdx], "pricePerUnit", lineNumber, file.getName());
+          BigDecimal anchorPrice =
+              parseBigDecimal(row[anchorPriceIdx], "anchorPrice", lineNumber, file.getName());
 
           if (retailPrice == null || pricePerUnit == null || anchorPrice == null) {
             if (errorCount++ < errorLogLimit) {
-              System.err.printf("⚠️ Skipping row %d in %s due to invalid price data%n", lineNumber, file.getName());
+              System.err.printf(
+                  "⚠️ Skipping row %d in %s due to invalid price data%n",
+                  lineNumber, file.getName());
             }
             continue;
           }
@@ -88,20 +98,30 @@ public class CsvParser {
 
         } catch (Exception e) {
           if (errorCount++ < errorLogLimit) {
-            System.err.printf("❌ Error parsing row %d in %s: %s%n", lineNumber, file.getName(), e.getMessage());
+            System.err.printf(
+                "❌ Error parsing row %d in %s: %s%n", lineNumber, file.getName(), e.getMessage());
           }
         }
       }
 
       if (errorCount > errorLogLimit) {
-        System.err.printf("⚠️ Suppressed %d additional errors for %s%n", errorCount - errorLogLimit, file.getName());
+        System.err.printf(
+            "⚠️ Suppressed %d additional errors for %s%n",
+            errorCount - errorLogLimit, file.getName());
       }
     }
 
     return entries;
   }
 
-  private static void createPriceEntry(Store store, String[] row, LocalDate priceDate, BigDecimal retailPrice, BigDecimal pricePerUnit, BigDecimal anchorPrice, List<PriceEntry> entries) {
+  private static void createPriceEntry(
+      Store store,
+      String[] row,
+      LocalDate priceDate,
+      BigDecimal retailPrice,
+      BigDecimal pricePerUnit,
+      BigDecimal anchorPrice,
+      List<PriceEntry> entries) {
     Article article = new Article();
     article.setName(row[0]);
     article.setProductCode(row[1]);
@@ -122,7 +142,23 @@ public class CsvParser {
 
   public String extractStoreCode(String filename) {
     try {
-      return filename.split("_")[1];
+      if (filename.toLowerCase().contains("spar") || filename.toLowerCase().contains("interspar")) {
+        // SPAR format logic
+        String[] parts = filename.split("_");
+        String city = parts[1];
+        String storeId = parts[parts.length - 5];
+        return city + "_" + storeId;
+      } else if (filename.toLowerCase().contains("supermarket")) {
+        // Lidl format logic
+        // e.g. Supermarket 130_Put Lore_4_21000_Split_1_01.06.2025_7.15h.csv
+        String[] parts = filename.split("_");
+        // Assuming parts[0] is 'Supermarket 130', and parts[4] is postal code
+        String storeNumber = parts[0].replace("Supermarket ", "").trim(); // "130"
+        String postalCode = parts[4]; // "21000"
+        return "lidl_" + storeNumber + "_" + postalCode;
+      } else {
+        throw new IllegalArgumentException("Unrecognized filename pattern: " + filename);
+      }
     } catch (Exception e) {
       throw new IllegalArgumentException(
           "Could not extract store code from filename: " + filename, e);
@@ -161,22 +197,36 @@ public class CsvParser {
     }
   }
 
-  private BigDecimal parseBigDecimal(String value, String columnName, int lineNumber, String filename) {
-    if (value == null || value.trim().isEmpty()) return null;
-
+  private BigDecimal parseBigDecimal(
+      String value, String columnName, int lineNumber, String filename) {
     try {
-      BigDecimal result = new BigDecimal(value.replace(",", "."));
+      if (value == null || value.trim().isEmpty()) {
+        throw new IllegalArgumentException("empty value");
+      }
+
+      String cleaned =
+          value
+              .replaceAll("\\.", "") // remove dots (thousands separator, if present)
+              .replace(",", ".") // replace decimal comma
+              .replace("\"", "") // strip quotes
+              .trim();
+
+      BigDecimal result = new BigDecimal(cleaned);
 
       if (result.abs().compareTo(new BigDecimal("99999999.99")) >= 0) {
-        return null; // overflow — skip
+        System.err.printf(
+            "⚠️  Overflow risk on row %d (%s): %s = %s%n",
+            lineNumber, filename, columnName, result);
       }
 
       return result;
-    } catch (NumberFormatException e) {
-      return null;
+
+    } catch (Exception e) {
+      System.err.printf(
+          "❌ Invalid number on row %d (%s): [%s = %s]%n", lineNumber, filename, columnName, value);
+      return BigDecimal.ZERO; // or null if you want to skip the row
     }
   }
-
 
   private enum Encoding {
     LIDL(Charset.forName("windows-1252"), ','),
