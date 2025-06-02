@@ -53,7 +53,7 @@ public abstract class AbstractFileDownloadService {
       return List.of();
     }
 
-    return Flux.fromIterable(filteredUrls).flatMap(this::downloadFile, 4).collectList().block();
+    return Flux.fromIterable(filteredUrls).flatMap(this::downloadFile, 10).collectList().block();
   }
 
   private Mono<Path> downloadFile(String fileUrl) {

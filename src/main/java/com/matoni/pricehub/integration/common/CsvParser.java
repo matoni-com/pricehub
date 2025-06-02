@@ -74,9 +74,19 @@ public class CsvParser {
         if (row.length < MIN_COLUMNS) continue;
 
         try {
-          int retailPriceIdx = encoding == Encoding.LIDL ? 5 : 6;
-          int pricePerUnitIdx = encoding == Encoding.LIDL ? 8 : 7;
-          int anchorPriceIdx = encoding == Encoding.LIDL ? 11 : 10;
+          int retailPriceIdx ;
+          int pricePerUnitIdx ;
+          int anchorPriceIdx ;
+
+          if (encoding == Encoding.SPAR) {
+            retailPriceIdx = 6;
+            pricePerUnitIdx = 8;
+            anchorPriceIdx = 11;
+          } else {
+            retailPriceIdx = 5;
+            pricePerUnitIdx = 8;
+            anchorPriceIdx = 11;
+          }
 
           BigDecimal retailPrice =
               parseBigDecimal(row[retailPriceIdx], "retailPrice", lineNumber, file.getName());
