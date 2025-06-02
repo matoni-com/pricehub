@@ -36,8 +36,7 @@ public class CsvParser {
 
     List<PriceEntry> entries = new ArrayList<>();
 
-    Charset charset =
-        encoding == Encoding.SPAR ? StandardCharsets.UTF_8 : Charset.forName("windows-1250");
+    Charset charset = encoding.charset;
 
     try (CSVReader reader =
         new CSVReader(new InputStreamReader(new FileInputStream(file), charset))) {
@@ -113,7 +112,14 @@ public class CsvParser {
   }
 
   private enum Encoding {
-    LIDL,
-    SPAR
+    LIDL(Charset.forName("windows-1250")),
+    SPAR(StandardCharsets.UTF_8); // or change if needed
+
+    public final Charset charset;
+
+    Encoding(Charset charset) {
+      this.charset = charset;
+    }
   }
+
 }

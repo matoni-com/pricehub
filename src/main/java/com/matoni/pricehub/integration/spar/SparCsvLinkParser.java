@@ -12,6 +12,7 @@ public class SparCsvLinkParser {
 
   private static final String BASE_URL = "https://www.spar.hr/usluge/cjenici";
 
+  // this needs to be extended to find older urls
   public List<String> findCsvFileUrls() throws IOException {
     Document doc = Jsoup.connect(BASE_URL).get();
     Elements links = doc.select("a[href$=.csv]");

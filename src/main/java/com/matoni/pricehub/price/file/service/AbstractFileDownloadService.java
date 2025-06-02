@@ -75,7 +75,7 @@ public abstract class AbstractFileDownloadService {
             .uri(info.url())
             .retrieve()
             .bodyToFlux(DataBuffer.class)
-            .timeout(Duration.ofSeconds(30));
+            .timeout(Duration.ofSeconds(60));
 
     return writeToDisk(info, dataBufferFlux)
         .thenReturn(info.targetPath())

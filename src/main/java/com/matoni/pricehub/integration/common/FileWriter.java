@@ -1,4 +1,4 @@
-package com.matoni.pricehub.integration.spar;
+package com.matoni.pricehub.integration.common;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -15,7 +15,7 @@ import reactor.core.publisher.Mono;
 
 @Slf4j
 @Component
-public class CsvFileWriter {
+public class FileWriter {
 
   public Mono<Void> writeToTempThenMove(Flux<DataBuffer> data, Path tempPath, Path targetPath) {
     log.info("📥 Starting write to temp file: {}", tempPath);

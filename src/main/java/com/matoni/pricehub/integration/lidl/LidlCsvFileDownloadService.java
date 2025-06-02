@@ -1,5 +1,6 @@
 package com.matoni.pricehub.integration.lidl;
 
+import com.matoni.pricehub.integration.common.FileWriter;
 import com.matoni.pricehub.price.file.service.AbstractFileDownloadService;
 import com.matoni.pricehub.price.file.service.PriceFileDownloader;
 import java.util.List;
@@ -31,13 +32,13 @@ public class LidlCsvFileDownloadService extends AbstractFileDownloadService
     implements PriceFileDownloader {
 
   private final LidlZipLinkParser linkParser;
-  private final ZipFileWriter fileWriter;
+  private final FileWriter fileWriter;
 
   public LidlCsvFileDownloadService(
       WebClient webClient,
       @Value("${lidl.csv.download-dir:downloads}") String downloadDir,
       LidlZipLinkParser linkParser,
-      ZipFileWriter fileWriter) {
+      FileWriter fileWriter) {
     super(webClient, downloadDir);
     this.linkParser = linkParser;
     this.fileWriter = fileWriter;
