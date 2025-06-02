@@ -6,6 +6,7 @@ import com.matoni.pricehub.common.BaseIntegrationSuite;
 import com.matoni.pricehub.price.file.entity.ProcessedFile;
 import com.matoni.pricehub.price.file.repository.ProcessedFileRepository;
 import com.matoni.pricehub.price.repository.PriceEntryRepository;
+import com.matoni.pricehub.price.service.PriceDataPipeline;
 import com.matoni.pricehub.retailchain.entity.RetailChain;
 import com.matoni.pricehub.retailchain.repository.RetailChainRepository;
 import java.io.File;
@@ -19,9 +20,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public class LidlPriceDataPipelineIntegrationTest extends BaseIntegrationSuite {
+public class PriceDataPipelineLidlIntegrationTest extends BaseIntegrationSuite {
 
-  @Autowired private LidlPriceDataPipeline pipeline;
+  @Autowired private PriceDataPipeline pipeline;
+  @Autowired private LidlCsvFileDownloadService lidlCsvFileDownloadService;
   @Autowired private PriceEntryRepository priceEntryRepository;
   @Autowired private RetailChainRepository retailChainRepository;
   @Autowired private ProcessedFileRepository processedFileRepository;
@@ -42,7 +44,6 @@ public class LidlPriceDataPipelineIntegrationTest extends BaseIntegrationSuite {
 
   @AfterEach
   void cleanUp() throws Exception {
-    // Delete all files in download directory after the test
     if (Files.exists(Paths.get(DOWNLOAD_DIR))) {
       Files.walk(Paths.get(DOWNLOAD_DIR))
           .map(Path::toFile)
@@ -52,8 +53,7 @@ public class LidlPriceDataPipelineIntegrationTest extends BaseIntegrationSuite {
   }
 
   @Test
-  void it_should_download_extract_and_import_prices() throws Exception {
-
+  void it_should_download_extract_and_import_prices_for_lidl() throws Exception {
     RetailChain lidl = retailChainRepository.findByName("Lidl").orElseThrow();
 
     Set<String> processedZipNames =
@@ -78,7 +78,7 @@ public class LidlPriceDataPipelineIntegrationTest extends BaseIntegrationSuite {
             .map(
                 name -> {
                   ProcessedFile pf = new ProcessedFile();
-                  pf.setRetailChain(lidl); // assume 'lidl' is already fetched
+                  pf.setRetailChain(lidl);
                   pf.setFileName(name);
                   return pf;
                 })
@@ -87,7 +87,7 @@ public class LidlPriceDataPipelineIntegrationTest extends BaseIntegrationSuite {
     processedFileRepository.saveAll(filesToSeed);
 
     // when
-    pipeline.run();
+    pipeline.run(lidl, lidlCsvFileDownloadService, "lidl");
 
     // then
     File downloadDir = new File(DOWNLOAD_DIR);

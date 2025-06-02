@@ -8,6 +8,7 @@ import com.opencsv.exceptions.CsvValidationException;
 import java.io.*;
 import java.math.BigDecimal;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -20,20 +21,35 @@ public class CsvParser {
   private static final DateTimeFormatter DATE_FROM_FILENAME =
       DateTimeFormatter.ofPattern("dd.MM.yyyy");
 
-  public List<PriceEntry> parse(File file, Store store) throws IOException, CsvValidationException {
+  public List<PriceEntry> parseLidl(File file, Store store)
+      throws IOException, CsvValidationException {
+    return parseInternal(file, store, Encoding.LIDL);
+  }
+
+  public List<PriceEntry> parseSpar(File file, Store store)
+      throws IOException, CsvValidationException {
+    return parseInternal(file, store, Encoding.SPAR);
+  }
+
+  private List<PriceEntry> parseInternal(File file, Store store, Encoding encoding)
+      throws IOException, CsvValidationException {
+
     List<PriceEntry> entries = new ArrayList<>();
 
-    try (CSVReader reader =
-        new CSVReader(new InputStreamReader(new FileInputStream(file), ENCODING))) {
-      String[] headers = reader.readNext(); // skip header
+    Charset charset =
+        encoding == Encoding.SPAR ? StandardCharsets.UTF_8 : Charset.forName("windows-1250");
 
+    try (CSVReader reader =
+        new CSVReader(new InputStreamReader(new FileInputStream(file), charset))) {
+
+      String[] headers = reader.readNext(); // Skip header
       String[] row;
-      int lineNumber = 1; // 1-based index to match real CSV line numbers (header is line 1)
+      int lineNumber = 1;
+
       while ((row = reader.readNext()) != null) {
         lineNumber++;
 
         if (row.length < 11) {
-          // Skip incomplete rows
           System.err.printf(
               "⚠️  Skipping malformed row %d: expected at least 11 columns but got %d -> %s%n",
               lineNumber, row.length, Arrays.toString(row));
@@ -61,7 +77,6 @@ public class CsvParser {
           System.err.printf(
               "❌ Failed to parse row %d in file %s: %s -> %s%n",
               lineNumber, file.getName(), Arrays.toString(row), e.getMessage());
-          // Optionally: skip or rethrow
         }
       }
     }
@@ -95,5 +110,10 @@ public class CsvParser {
     } catch (Exception e) {
       return BigDecimal.ZERO;
     }
+  }
+
+  private enum Encoding {
+    LIDL,
+    SPAR
   }
 }

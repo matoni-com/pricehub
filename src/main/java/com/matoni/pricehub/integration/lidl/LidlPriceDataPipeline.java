@@ -2,6 +2,8 @@ package com.matoni.pricehub.integration.lidl;
 
 import com.matoni.pricehub.price.file.entity.ProcessedFile;
 import com.matoni.pricehub.price.file.repository.ProcessedFileRepository;
+import com.matoni.pricehub.price.file.service.PriceFileService;
+import com.matoni.pricehub.price.service.PriceImportService;
 import com.matoni.pricehub.retailchain.entity.RetailChain;
 import com.matoni.pricehub.retailchain.repository.RetailChainRepository;
 import java.io.File;
@@ -21,11 +23,12 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class LidlPriceDataPipeline {
 
-  private final CsvFileDownloadService downloadService;
+  private final LidlCsvFileDownloadService downloadService;
   private final ZipExtractor zipExtractor;
   private final PriceImportService priceImportService;
   private final RetailChainRepository retailChainRepository;
   private final ProcessedFileRepository processedFileRepository;
+  private final PriceFileService priceFileService;
 
   /**
    * Entry point of the Lidl price data pipeline. This method performs the full ETL process: 1.
@@ -43,7 +46,7 @@ public class LidlPriceDataPipeline {
             .map(ProcessedFile::getFileName)
             .collect(Collectors.toUnmodifiableSet());
 
-    List<Path> zipFiles = downloadService.downloadZipFiles(processedZipNames);
+    List<Path> zipFiles = downloadService.downloadFiles(processedZipNames);
 
     for (Path zipPath : zipFiles) {
       try {
@@ -61,7 +64,10 @@ public class LidlPriceDataPipeline {
                             () -> {
                               try {
                                 log.info("📂 Importing {} file", csv.getName());
-                                priceImportService.importFromLidlCsv(csv, lidl);
+                                priceImportService.importFromCsv(csv, lidl, "lidl");
+
+                                priceFileService.markFileAsProcessed(csv, lidl);
+                                log.info("✅ Marked {} as processed", csv.getName());
                               } catch (Exception e) {
                                 log.error(
                                     "❌ Failed to import CSV {}: {}",
