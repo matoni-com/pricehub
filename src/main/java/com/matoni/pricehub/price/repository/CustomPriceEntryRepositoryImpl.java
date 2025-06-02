@@ -5,7 +5,9 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.Query;
 import jakarta.transaction.Transactional;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Repository;
 
@@ -13,6 +15,8 @@ import org.springframework.stereotype.Repository;
 public class CustomPriceEntryRepositoryImpl implements CustomPriceEntryRepository {
 
   @PersistenceContext private EntityManager entityManager;
+
+  private static final int MAX_BATCH_SIZE = 1000;
 
   @Override
   @Transactional
@@ -25,6 +29,30 @@ public class CustomPriceEntryRepositoryImpl implements CustomPriceEntryRepositor
   public void upsertAll(List<PriceEntry> entries) {
     if (entries.isEmpty()) return;
 
+    // Deduplicate entries by conflict key to avoid Postgres double update error
+    Map<String, PriceEntry> deduplicated =
+        entries.stream()
+            .collect(
+                Collectors.toMap(
+                    e ->
+                        e.getStore().getId()
+                            + "-"
+                            + e.getArticle().getId()
+                            + "-"
+                            + e.getPriceDate(),
+                    e -> e,
+                    (existing, replacement) -> replacement));
+
+    List<PriceEntry> deduplicatedList = new ArrayList<>(deduplicated.values());
+
+    for (int i = 0; i < deduplicatedList.size(); i += MAX_BATCH_SIZE) {
+      int end = Math.min(i + MAX_BATCH_SIZE, deduplicatedList.size());
+      List<PriceEntry> batch = deduplicatedList.subList(i, end);
+      upsertBatch(batch);
+    }
+  }
+
+  private void upsertBatch(List<PriceEntry> entries) {
     // Using a native SQL query to perform bulk upserts efficiently with PostgreSQL's `ON CONFLICT`
     // clause.
     // This ensures atomic insert-or-update operations based on the unique constraint (store_id,
@@ -36,10 +64,10 @@ public class CustomPriceEntryRepositoryImpl implements CustomPriceEntryRepositor
     // and ensures performance and data consistency during large CSV imports.
     String sql =
         """
-        INSERT INTO price_entries (
-            store_id, article_id, price_date, retail_price, price_per_unit, anchor_price, created_at, updated_at
-        ) VALUES
-        """
+            INSERT INTO price_entries (
+                store_id, article_id, price_date, retail_price, price_per_unit, anchor_price, created_at, updated_at
+            ) VALUES
+            """
             + entries.stream()
                 .map(e -> "(?, ?, ?, ?, ?, ?, now(), now())")
                 .collect(Collectors.joining(", "))
@@ -50,7 +78,7 @@ public class CustomPriceEntryRepositoryImpl implements CustomPriceEntryRepositor
             price_per_unit = EXCLUDED.price_per_unit,
             anchor_price = EXCLUDED.anchor_price,
             updated_at = now()
-    """;
+        """;
 
     Query query = entityManager.createNativeQuery(sql);
 

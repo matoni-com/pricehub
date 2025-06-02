@@ -3,7 +3,6 @@ package com.matoni.pricehub.integration.lidl;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.matoni.pricehub.common.BaseIntegrationSuite;
-import com.matoni.pricehub.price.entity.PriceEntry;
 import com.matoni.pricehub.price.file.entity.ProcessedFile;
 import com.matoni.pricehub.price.file.repository.ProcessedFileRepository;
 import com.matoni.pricehub.price.repository.PriceEntryRepository;
@@ -60,6 +59,7 @@ public class LidlPriceDataPipelineIntegrationTest extends BaseIntegrationSuite {
     Set<String> processedZipNames =
         Set.of(
             "Popis_cijena_po_trgovinama_na_dan_01_06_2025.zip",
+            "Popis_cijena_po_trgovinama_na_dan_02_06_2025.zip",
             "Popis_cijena_po_trgovinama_na_dan_15_05_2025.zip",
             "Popis_cijena_po_trgovinama_na_dan_16_05_2025.zip",
             "Popis_cijena_po_trgovinama_na_dan_17_05_2025.zip",
@@ -100,7 +100,7 @@ public class LidlPriceDataPipelineIntegrationTest extends BaseIntegrationSuite {
     assertThat(allFiles).anyMatch(f -> f.getName().endsWith(".zip"));
     assertThat(allFiles).anyMatch(f -> f.getName().endsWith(".csv"));
 
-    List<PriceEntry> saved = priceEntryRepository.findAll();
-    assertThat(saved).isNotEmpty(); // at least one entry should be stored
+    long count = priceEntryRepository.count();
+    assertThat(count).isGreaterThan(0);
   }
 }

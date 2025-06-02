@@ -8,6 +8,9 @@ import java.io.File;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -47,16 +50,32 @@ public class LidlPriceDataPipeline {
         List<File> csvFiles = zipExtractor.extractCsvFiles(zipPath.toFile(), zipPath.getParent());
         log.info("📂 Extracted {} file(s) from {}", csvFiles.size(), zipPath.getFileName());
 
-        csvFiles.parallelStream()
-            .forEach(
-                csv -> {
-                  try {
-                    log.info("📂 Importing {} file", csv.getName());
-                    priceImportService.importFromLidlCsv(csv, lidl);
-                  } catch (Exception e) {
-                    log.error("❌ Failed to import CSV {}: {}", csv.getName(), e.getMessage(), e);
-                  }
-                });
+        ExecutorService executor =
+            Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+
+        List<CompletableFuture<Void>> futures =
+            csvFiles.stream()
+                .map(
+                    csv ->
+                        CompletableFuture.runAsync(
+                            () -> {
+                              try {
+                                log.info("📂 Importing {} file", csv.getName());
+                                priceImportService.importFromLidlCsv(csv, lidl);
+                              } catch (Exception e) {
+                                log.error(
+                                    "❌ Failed to import CSV {}: {}",
+                                    csv.getName(),
+                                    e.getMessage(),
+                                    e);
+                              }
+                            },
+                            executor))
+                .toList();
+
+        // Wait for all tasks to complete
+        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+        executor.shutdown();
 
       } catch (Exception e) {
         log.error("❌ Failed to unzip file {}: {}", zipPath.getFileName(), e.getMessage(), e);

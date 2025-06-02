@@ -3,6 +3,7 @@ package com.matoni.pricehub.article.repository;
 import com.matoni.pricehub.article.entity.Article;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import java.util.Collection;
 import java.util.List;
 import org.springframework.stereotype.Repository;
 
@@ -75,5 +76,14 @@ public class ArticleRepositoryImpl implements ArticleRepositoryCustom {
 
     article.setId(id);
     return article;
+  }
+
+  @Override
+  public List<Article> findAllByProductCodeIn(Collection<String> productCodes) {
+    String sql = "SELECT * FROM articles WHERE product_code IN :codes";
+    return entityManager
+        .createNativeQuery(sql, Article.class)
+        .setParameter("codes", productCodes)
+        .getResultList();
   }
 }
