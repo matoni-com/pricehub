@@ -89,7 +89,7 @@ public class CsvFileDownloadService {
     log.info("Found {} .zip file(s) to download", zipUrls.size());
 
     List<Path> downloadedPaths =
-        Flux.fromIterable(zipUrls).flatMap(this::downloadFile, 4).collectList().block();
+        Flux.fromIterable(filteredUrls).flatMap(this::downloadFile, 4).collectList().block();
 
     log.info("All .zip files downloaded successfully.");
     return downloadedPaths;
