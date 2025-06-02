@@ -20,7 +20,10 @@ CREATE TABLE stores (
     postal_code VARCHAR(255) NOT NULL,
     chain_id INT8 NOT NULL REFERENCES retail_chains(id),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+
+    -- Add uniqueness constraint
+    CONSTRAINT uq_store_code_per_chain UNIQUE (store_code, chain_id)
 );
 
 -- Articles (with timestamps)

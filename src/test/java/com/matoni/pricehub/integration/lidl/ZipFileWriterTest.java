@@ -2,6 +2,7 @@ package com.matoni.pricehub.integration.lidl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.matoni.pricehub.integration.common.FileWriter;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.*;
@@ -13,12 +14,12 @@ import reactor.test.StepVerifier;
 
 public class ZipFileWriterTest {
 
-  private ZipFileWriter zipFileWriter;
+  private FileWriter zipFileWriter;
   private Path tempDir;
 
   @BeforeEach
   void setUp() throws IOException {
-    zipFileWriter = new ZipFileWriter();
+    zipFileWriter = new FileWriter();
     tempDir = Files.createTempDirectory("zip-test");
   }
 
