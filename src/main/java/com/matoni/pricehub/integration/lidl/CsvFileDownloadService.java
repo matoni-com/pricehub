@@ -1,9 +1,11 @@
 package com.matoni.pricehub.integration.lidl;
 
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.*;
 import java.time.Duration;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Executors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -41,20 +43,23 @@ public class CsvFileDownloadService {
   private final Scheduler downloadScheduler;
   private final LidlZipLinkParser linkParser;
   private final ZipFileWriter zipFileWriter;
+  private final ZipExtractor zipExtractor;
 
   public CsvFileDownloadService(
       WebClient webClient,
       @Value("${lidl.csv.download-dir:downloads}") String downloadDir,
       LidlZipLinkParser linkParser,
-      ZipFileWriter zipFileWriter) {
+      ZipFileWriter zipFileWriter,
+      ZipExtractor zipExtractor) {
     this.webClient = webClient;
     this.downloadDir = downloadDir;
     this.linkParser = linkParser;
     this.zipFileWriter = zipFileWriter;
+    this.zipExtractor = zipExtractor;
     this.downloadScheduler = Schedulers.fromExecutor(Executors.newFixedThreadPool(4));
   }
 
-  public void downloadZipFiles() throws Exception {
+  public List<Path> downloadZipFiles(Set<String> alreadyProcessedFileNames) throws Exception {
     log.info("Starting download of .zip files from {}", BASE_URL);
 
     Files.createDirectories(Paths.get(downloadDir));
@@ -62,21 +67,35 @@ public class CsvFileDownloadService {
 
     List<String> zipUrls = linkParser.findZipFileUrls();
 
-    if (zipUrls.isEmpty()) {
-      throw new IllegalStateException("No .zip file found on the page");
+    List<String> filteredUrls =
+        zipUrls.stream()
+            .filter(
+                url -> {
+                  try {
+                    String fileName = Paths.get(new URL(url).getPath()).getFileName().toString();
+                    return !alreadyProcessedFileNames.contains(fileName);
+                  } catch (MalformedURLException e) {
+                    log.warn("Skipping malformed URL: {}", url, e);
+                    return false;
+                  }
+                })
+            .toList();
+
+    if (filteredUrls.isEmpty()) {
+      log.info("No new .zip files to download.");
+      return List.of();
     }
 
     log.info("Found {} .zip file(s) to download", zipUrls.size());
 
-    Flux.fromIterable(zipUrls)
-        .flatMap(this::downloadFile, 4) // parallelism = 4
-        .then()
-        .block();
+    List<Path> downloadedPaths =
+        Flux.fromIterable(zipUrls).flatMap(this::downloadFile, 4).collectList().block();
 
     log.info("All .zip files downloaded successfully.");
+    return downloadedPaths;
   }
 
-  private Mono<Void> downloadFile(String zipUrl) {
+  private Mono<Path> downloadFile(String zipUrl) {
     return Mono.fromCallable(
             () -> {
               String filename = Paths.get(new URL(zipUrl).getPath()).getFileName().toString();
@@ -85,10 +104,10 @@ public class CsvFileDownloadService {
               return new FileDownloadInfo(zipUrl, tempPath, targetPath);
             })
         .flatMap(this::downloadWithRetry)
-        .subscribeOn(downloadScheduler); // run in thread pool
+        .subscribeOn(downloadScheduler);
   }
 
-  private Mono<Void> downloadWithRetry(FileDownloadInfo info) {
+  private Mono<Path> downloadWithRetry(FileDownloadInfo info) {
     Flux<DataBuffer> data =
         webClient
             .get()
@@ -99,6 +118,7 @@ public class CsvFileDownloadService {
 
     return zipFileWriter
         .writeToTempThenMove(data, info.tempPath(), info.targetPath())
+        .thenReturn(info.targetPath()) // just return the .zip path
         .retryWhen(
             Retry.backoff(3, Duration.ofSeconds(2))
                 .doBeforeRetry(

@@ -1,6 +1,7 @@
 package com.matoni.pricehub;
 
 import com.matoni.pricehub.integration.lidl.CsvFileDownloadService;
+import java.util.Set;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -22,7 +23,7 @@ public class PricehubApplication {
   @GetMapping("/hello")
   public String hello(@RequestParam(value = "name", defaultValue = "World") String name)
       throws Exception {
-    csvFileDownloadService.downloadZipFiles();
+    csvFileDownloadService.downloadZipFiles(Set.of());
     return String.format("Hello %s!", name);
   }
 }
