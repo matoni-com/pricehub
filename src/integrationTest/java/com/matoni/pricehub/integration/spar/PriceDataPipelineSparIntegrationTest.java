@@ -1,4 +1,4 @@
-package com.matoni.pricehub.integration.lidl;
+package com.matoni.pricehub.integration.spar;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -19,10 +19,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public class PriceDataPipelineLidlIntegrationTest extends BaseIntegrationSuite {
+public class PriceDataPipelineSparIntegrationTest extends BaseIntegrationSuite {
 
-  @Autowired private LidlPriceDataPipeline lidlPriceDataPipeline;
-  @Autowired private LidlCsvFileDownloadService lidlCsvFileDownloadService;
+  @Autowired private SparPriceDataPipeline sparPriceDataPipeline;
   @Autowired private PriceEntryRepository priceEntryRepository;
   @Autowired private RetailChainRepository retailChainRepository;
   @Autowired private ProcessedFileRepository processedFileRepository;
@@ -30,14 +29,14 @@ public class PriceDataPipelineLidlIntegrationTest extends BaseIntegrationSuite {
   private static final String DOWNLOAD_DIR = "downloads";
 
   @BeforeEach
-  void ensureLidlRetailChainExists() {
+  void ensureSparRetailChainExists() {
     retailChainRepository
-        .findByName("Lidl")
+        .findByName("Spar")
         .orElseGet(
             () -> {
-              RetailChain lidl = new RetailChain();
-              lidl.setName("Lidl");
-              return retailChainRepository.save(lidl);
+              RetailChain spar = new RetailChain();
+              spar.setName("Spar");
+              return retailChainRepository.save(spar);
             });
   }
 
@@ -52,35 +51,21 @@ public class PriceDataPipelineLidlIntegrationTest extends BaseIntegrationSuite {
   }
 
   @Test
-  void it_should_download_extract_and_import_prices_for_lidl() throws Exception {
-    RetailChain lidl = retailChainRepository.findByName("Lidl").orElseThrow();
+  void it_should_download_and_import_prices_for_spar() throws Exception {
+    RetailChain spar = retailChainRepository.findByName("Spar").orElseThrow();
 
-    Set<String> processedZipNames =
+    Set<String> processedCsvNames =
         Set.of(
-            "Popis_cijena_po_trgovinama_na_dan_02_06_2025.zip",
-            "Popis_cijena_po_trgovinama_na_dan_29_05_2025.zip",
-            "Popis_cijena_po_trgovinama_na_dan_31_05_2025.zip",
-            "Popis_cijena_po_trgovinama_na_dan_15_05_2025.zip",
-            "Popis_cijena_po_trgovinama_na_dan_16_05_2025.zip",
-            "Popis_cijena_po_trgovinama_na_dan_17_05_2025.zip",
-            "Popis_cijena_po_trgovinama_na_dan_18_05_2025.zip",
-            "Popis_cijena_po_trgovinama_na_dan_19_05_2025.zip",
-            "Popis_cijena_po_trgovinama_na_dan_20_05_2025.zip",
-            "Popis_cijena_po_trgovinama_na_dan_21_05_2025.zip",
-            "Popis_cijena_po_trgovinama_na_dan_22_05_2025.zip",
-            "Popis_cijena_po_trgovinama_na_dan_23_05_2025.zip",
-            "Popis_cijena_po_trgovinama_na_dan_24_05_2025.zip",
-            "Popis_cijena_po_trgovinama_na_dan_25_05_2025.zip",
-            "Popis_cijena_po_trgovinama_na_dan_26_05_2025.zip",
-            "Popis_cijena_po_trgovinama_na_dan_27_05_2025.zip",
-            "Popis_cijena_po_trgovinama_na_dan_28_05_2025.zip");
+            "Supermarket 200_Ulica Proštinske bune_20_52100_Pula_1_02.06.2025_7.15h.csv",
+            "Supermarket 201_Poreč_03.06.2025_7.15h.csv" // Add more if needed
+            );
 
     List<ProcessedFile> filesToSeed =
-        processedZipNames.stream()
+        processedCsvNames.stream()
             .map(
                 name -> {
                   ProcessedFile pf = new ProcessedFile();
-                  pf.setRetailChain(lidl);
+                  pf.setRetailChain(spar);
                   pf.setFileName(name);
                   return pf;
                 })
@@ -89,7 +74,7 @@ public class PriceDataPipelineLidlIntegrationTest extends BaseIntegrationSuite {
     processedFileRepository.saveAll(filesToSeed);
 
     // when
-    lidlPriceDataPipeline.run();
+    sparPriceDataPipeline.run();
 
     // then
     File downloadDir = new File(DOWNLOAD_DIR);
@@ -97,7 +82,6 @@ public class PriceDataPipelineLidlIntegrationTest extends BaseIntegrationSuite {
 
     File[] allFiles = downloadDir.listFiles();
     assertThat(allFiles).isNotEmpty();
-    assertThat(allFiles).anyMatch(f -> f.getName().endsWith(".zip"));
     assertThat(allFiles).anyMatch(f -> f.getName().endsWith(".csv"));
 
     long count = priceEntryRepository.count();

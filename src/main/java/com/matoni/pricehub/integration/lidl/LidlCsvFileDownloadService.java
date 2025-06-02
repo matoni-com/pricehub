@@ -4,6 +4,7 @@ import com.matoni.pricehub.integration.common.FileWriter;
 import com.matoni.pricehub.price.file.service.AbstractFileDownloadService;
 import com.matoni.pricehub.price.file.service.PriceFileDownloader;
 import java.util.List;
+import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.buffer.DataBuffer;
@@ -45,7 +46,7 @@ public class LidlCsvFileDownloadService extends AbstractFileDownloadService
   }
 
   @Override
-  protected List<String> getFileUrls() throws Exception {
+  protected List<String> getFileUrls(Set<String> alreadyProcessed) throws Exception {
     return linkParser.findZipFileUrls();
   }
 

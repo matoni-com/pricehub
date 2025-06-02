@@ -1,19 +1,11 @@
 package com.matoni.pricehub.integration.lidl;
 
-import com.matoni.pricehub.price.file.entity.ProcessedFile;
-import com.matoni.pricehub.price.file.repository.ProcessedFileRepository;
-import com.matoni.pricehub.price.file.service.PriceFileService;
-import com.matoni.pricehub.price.service.PriceImportService;
+import com.matoni.pricehub.integration.common.ZipExtractor;
+import com.matoni.pricehub.price.file.service.PriceFileDownloader;
+import com.matoni.pricehub.price.file.service.ZipUnpackingFileDownloader;
+import com.matoni.pricehub.price.service.PriceDataPipeline;
 import com.matoni.pricehub.retailchain.entity.RetailChain;
 import com.matoni.pricehub.retailchain.repository.RetailChainRepository;
-import java.io.File;
-import java.nio.file.Path;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -23,69 +15,20 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class LidlPriceDataPipeline {
 
-  private final LidlCsvFileDownloadService downloadService;
-  private final ZipExtractor zipExtractor;
-  private final PriceImportService priceImportService;
   private final RetailChainRepository retailChainRepository;
-  private final ProcessedFileRepository processedFileRepository;
-  private final PriceFileService priceFileService;
+  private final LidlCsvFileDownloadService lidlFileDownloadService;
+  private final ZipExtractor zipExtractor;
+  private final PriceDataPipeline priceDataPipeline;
 
-  /**
-   * Entry point of the Lidl price data pipeline. This method performs the full ETL process: 1.
-   * Finds the 'Lidl' RetailChain entity. 2. Downloads all available ZIP files with price data. 3.
-   * Extracts CSV files from each ZIP archive. 4. Parses each CSV and saves prices to the database.
-   */
   public void run() throws Exception {
     RetailChain lidl =
         retailChainRepository
             .findByName("Lidl")
             .orElseThrow(() -> new IllegalStateException("Retail chain Lidl not found"));
 
-    Set<String> processedZipNames =
-        processedFileRepository.findByRetailChain(lidl).stream()
-            .map(ProcessedFile::getFileName)
-            .collect(Collectors.toUnmodifiableSet());
+    PriceFileDownloader wrappedDownloader =
+        new ZipUnpackingFileDownloader(lidlFileDownloadService, zipExtractor);
 
-    List<Path> zipFiles = downloadService.downloadFiles(processedZipNames);
-
-    for (Path zipPath : zipFiles) {
-      try {
-        List<File> csvFiles = zipExtractor.extractCsvFiles(zipPath.toFile(), zipPath.getParent());
-        log.info("📂 Extracted {} file(s) from {}", csvFiles.size(), zipPath.getFileName());
-
-        ExecutorService executor =
-            Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-
-        List<CompletableFuture<Void>> futures =
-            csvFiles.stream()
-                .map(
-                    csv ->
-                        CompletableFuture.runAsync(
-                            () -> {
-                              try {
-                                log.info("📂 Importing {} file", csv.getName());
-                                priceImportService.importFromCsv(csv, lidl, "lidl");
-
-                                priceFileService.markFileAsProcessed(csv, lidl);
-                                log.info("✅ Marked {} as processed", csv.getName());
-                              } catch (Exception e) {
-                                log.error(
-                                    "❌ Failed to import CSV {}: {}",
-                                    csv.getName(),
-                                    e.getMessage(),
-                                    e);
-                              }
-                            },
-                            executor))
-                .toList();
-
-        // Wait for all tasks to complete
-        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
-        executor.shutdown();
-
-      } catch (Exception e) {
-        log.error("❌ Failed to unzip file {}: {}", zipPath.getFileName(), e.getMessage(), e);
-      }
-    }
+    priceDataPipeline.run(lidl, wrappedDownloader, "lidl");
   }
 }

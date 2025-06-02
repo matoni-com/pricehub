@@ -2,7 +2,7 @@ package com.matoni.pricehub.price.service;
 
 import com.matoni.pricehub.article.entity.Article;
 import com.matoni.pricehub.article.service.ArticleService;
-import com.matoni.pricehub.integration.lidl.CsvParser;
+import com.matoni.pricehub.integration.common.CsvParser;
 import com.matoni.pricehub.price.entity.PriceEntry;
 import com.matoni.pricehub.price.repository.PriceEntryRepository;
 import com.matoni.pricehub.retailchain.entity.RetailChain;

@@ -1,4 +1,4 @@
-package com.matoni.pricehub.integration.lidl;
+package com.matoni.pricehub.integration.common;
 
 import java.io.File;
 import java.io.FileInputStream;

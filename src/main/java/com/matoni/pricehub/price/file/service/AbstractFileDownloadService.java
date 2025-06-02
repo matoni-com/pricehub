@@ -32,7 +32,7 @@ public abstract class AbstractFileDownloadService {
     Files.createDirectories(Paths.get(downloadDir));
     log.info("Ensured download directory exists: {}", downloadDir);
 
-    List<String> urls = getFileUrls();
+    List<String> urls = getFileUrls(alreadyProcessed);
 
     List<String> filteredUrls =
         urls.stream()
@@ -98,7 +98,7 @@ public abstract class AbstractFileDownloadService {
                     }));
   }
 
-  protected abstract List<String> getFileUrls() throws Exception;
+  protected abstract List<String> getFileUrls(Set<String> alreadyProcessed) throws Exception;
 
   protected abstract Mono<Void> writeToDisk(FileDownloadInfo info, Flux<DataBuffer> data);
 
