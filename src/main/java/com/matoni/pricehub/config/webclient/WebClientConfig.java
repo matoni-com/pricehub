@@ -1,4 +1,4 @@
-package com.matoni.pricehub.webclient;
+package com.matoni.pricehub.config.webclient;
 
 import io.netty.channel.ChannelOption;
 import io.netty.handler.timeout.ReadTimeoutHandler;
