@@ -43,7 +43,6 @@ public class CsvFileDownloadService {
   private final Scheduler downloadScheduler;
   private final LidlZipLinkParser linkParser;
   private final ZipFileWriter zipFileWriter;
-  private final ZipExtractor zipExtractor;
 
   public CsvFileDownloadService(
       WebClient webClient,
@@ -55,7 +54,6 @@ public class CsvFileDownloadService {
     this.downloadDir = downloadDir;
     this.linkParser = linkParser;
     this.zipFileWriter = zipFileWriter;
-    this.zipExtractor = zipExtractor;
     this.downloadScheduler = Schedulers.fromExecutor(Executors.newFixedThreadPool(4));
   }
 
@@ -108,26 +106,40 @@ public class CsvFileDownloadService {
   }
 
   private Mono<Path> downloadWithRetry(FileDownloadInfo info) {
-    Flux<DataBuffer> data =
-        webClient
-            .get()
-            .uri(info.url())
-            .retrieve()
-            .bodyToFlux(DataBuffer.class)
-            .timeout(Duration.ofSeconds(30));
+    return Mono.defer(
+            () -> {
+              Flux<DataBuffer> dataBufferFlux =
+                  webClient
+                      .get()
+                      .uri(info.url())
+                      .retrieve()
+                      .bodyToFlux(DataBuffer.class)
+                      .timeout(Duration.ofSeconds(30))
+                      .doOnCancel(() -> log.warn("Download cancelled: {}", info.url()))
+                      .doFinally(signal -> log.debug("Stream finished with signal: {}", signal));
 
-    return zipFileWriter
-        .writeToTempThenMove(data, info.tempPath(), info.targetPath())
-        .thenReturn(info.targetPath()) // just return the .zip path
+              return zipFileWriter
+                  .writeToTempThenMove(dataBufferFlux, info.tempPath(), info.targetPath())
+                  .thenReturn(info.targetPath());
+            })
         .retryWhen(
             Retry.backoff(3, Duration.ofSeconds(2))
+                .filter(throwable -> throwable instanceof java.io.IOException)
+                .onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> retrySignal.failure())
                 .doBeforeRetry(
-                    retrySignal ->
-                        log.warn(
-                            "Retrying {} (attempt {}): {}",
-                            info.url(),
-                            retrySignal.totalRetries() + 1,
-                            retrySignal.failure().toString())));
+                    retrySignal -> {
+                      log.warn(
+                          "Retrying {} (attempt {}): {}",
+                          info.url(),
+                          retrySignal.totalRetries() + 1,
+                          retrySignal.failure());
+                      try {
+                        Files.deleteIfExists(info.tempPath());
+                        log.warn("Deleted temp file after failed attempt: {}", info.tempPath());
+                      } catch (Exception e) {
+                        log.warn("Could not delete temp file {}", info.tempPath(), e);
+                      }
+                    }));
   }
 
   private record FileDownloadInfo(String url, Path tempPath, Path targetPath) {}

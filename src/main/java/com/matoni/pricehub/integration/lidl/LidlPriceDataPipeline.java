@@ -47,13 +47,16 @@ public class LidlPriceDataPipeline {
         List<File> csvFiles = zipExtractor.extractCsvFiles(zipPath.toFile(), zipPath.getParent());
         log.info("📂 Extracted {} file(s) from {}", csvFiles.size(), zipPath.getFileName());
 
-        for (File csv : csvFiles) {
-          try {
-            priceImportService.importFromLidlCsv(csv, lidl);
-          } catch (Exception e) {
-            log.error("❌ Failed to import CSV {}: {}", csv.getName(), e.getMessage(), e);
-          }
-        }
+        csvFiles.parallelStream()
+            .forEach(
+                csv -> {
+                  try {
+                    log.info("📂 Importing {} file", csv.getName());
+                    priceImportService.importFromLidlCsv(csv, lidl);
+                  } catch (Exception e) {
+                    log.error("❌ Failed to import CSV {}: {}", csv.getName(), e.getMessage(), e);
+                  }
+                });
 
       } catch (Exception e) {
         log.error("❌ Failed to unzip file {}: {}", zipPath.getFileName(), e.getMessage(), e);

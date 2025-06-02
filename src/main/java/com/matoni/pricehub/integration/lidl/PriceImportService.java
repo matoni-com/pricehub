@@ -10,10 +10,6 @@ import com.matoni.pricehub.retailchain.service.store.StoreService;
 import com.opencsv.exceptions.CsvValidationException;
 import java.io.File;
 import java.io.IOException;
-import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -28,6 +24,7 @@ public class PriceImportService {
 
   public void importFromLidlCsv(File file, RetailChain chain)
       throws IOException, CsvValidationException {
+
     String storeCode = csvParser.extractStoreCode(file.getName());
     String address = extractAddressFromFilename(file.getName());
     String city = extractCityFromFilename(file.getName());
@@ -35,8 +32,6 @@ public class PriceImportService {
 
     Store store =
         storeService.findOrCreate(storeCode, "Lidl " + storeCode, address, city, postalCode, chain);
-
-    List<PriceEntry> entries = new ArrayList<>();
 
     for (PriceEntry row : csvParser.parse(file, store)) {
       Article article =
@@ -47,34 +42,20 @@ public class PriceImportService {
               row.getArticle().getBrand(),
               row.getArticle().getUnit());
 
-      LocalDate priceDate = row.getPriceDate();
+      PriceEntry entry = new PriceEntry();
+      entry.setStore(store);
+      entry.setArticle(article);
+      entry.setPriceDate(row.getPriceDate());
+      entry.setRetailPrice(row.getRetailPrice());
+      entry.setPricePerUnit(row.getPricePerUnit());
+      entry.setAnchorPrice(row.getAnchorPrice());
 
-      Optional<PriceEntry> existing =
-          priceEntryRepository.findByStoreIdAndArticleIdAndPriceDate(
-              store.getId(), article.getId(), priceDate);
-
-      if (existing.isPresent()) {
-        PriceEntry entry = existing.get();
-        entry.setRetailPrice(row.getRetailPrice());
-        entry.setPricePerUnit(row.getPricePerUnit());
-        entry.setAnchorPrice(row.getAnchorPrice());
-        priceEntryRepository.save(entry);
-      } else {
-        PriceEntry newEntry = new PriceEntry();
-        newEntry.setStore(store);
-        newEntry.setArticle(article);
-        newEntry.setPriceDate(priceDate);
-        newEntry.setRetailPrice(row.getRetailPrice());
-        newEntry.setPricePerUnit(row.getPricePerUnit());
-        newEntry.setAnchorPrice(row.getAnchorPrice());
-        priceEntryRepository.save(newEntry);
-      }
+      // Upsert logic: avoid SELECT-before-INSERT
+      priceEntryRepository.upsertPriceEntry(entry);
     }
-
-    priceEntryRepository.saveAll(entries);
   }
 
-  // Dummy parsing helpers — adjust to match filename format more accurately
+  // Dummy parsing helpers — adjust these later
   private String extractAddressFromFilename(String filename) {
     return "Unknown address";
   }

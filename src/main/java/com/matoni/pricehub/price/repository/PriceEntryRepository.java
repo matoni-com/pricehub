@@ -5,7 +5,8 @@ import java.time.LocalDate;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface PriceEntryRepository extends JpaRepository<PriceEntry, Long> {
+public interface PriceEntryRepository
+    extends JpaRepository<PriceEntry, Long>, CustomPriceEntryRepository {
   Optional<PriceEntry> findByStoreIdAndArticleIdAndPriceDate(
       Long storeId, Long articleId, LocalDate priceDate);
 }
