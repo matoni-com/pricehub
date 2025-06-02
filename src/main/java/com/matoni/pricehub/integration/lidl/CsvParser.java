@@ -14,7 +14,7 @@ import java.util.*;
 import org.springframework.stereotype.Component;
 
 @Component
-public class LidlCsvParser {
+public class CsvParser {
 
   private static final Charset ENCODING = Charset.forName("windows-1250");
   private static final DateTimeFormatter DATE_FROM_FILENAME =
@@ -28,25 +28,41 @@ public class LidlCsvParser {
       String[] headers = reader.readNext(); // skip header
 
       String[] row;
+      int lineNumber = 1; // 1-based index to match real CSV line numbers (header is line 1)
       while ((row = reader.readNext()) != null) {
-        Article article = new Article();
-        article.setName(row[0]);
-        article.setProductCode(row[1]);
-        article.setBrand(row[5]);
-        article.setBarcode(row[8] != null ? row[8].trim() : null);
-        article.setUnit(row[3]);
+        lineNumber++;
 
-        // You could also look up existing articles by product code to prevent duplicates
+        if (row.length < 11) {
+          // Skip incomplete rows
+          System.err.printf(
+              "⚠️  Skipping malformed row %d: expected at least 11 columns but got %d -> %s%n",
+              lineNumber, row.length, Arrays.toString(row));
+          continue;
+        }
 
-        PriceEntry priceEntry = new PriceEntry();
-        priceEntry.setArticle(article);
-        priceEntry.setStore(store);
-        priceEntry.setPriceDate(extractDateFromFilename(file.getName()));
-        priceEntry.setRetailPrice(parseBigDecimal(row[6]));
-        priceEntry.setPricePerUnit(parseBigDecimal(row[7]));
-        priceEntry.setAnchorPrice(parseBigDecimal(row[10]));
+        try {
+          Article article = new Article();
+          article.setName(row[0]);
+          article.setProductCode(row[1]);
+          article.setBrand(row[5]);
+          article.setUnit(row[3]);
+          article.setBarcode((row[8] != null && !row[8].trim().isEmpty()) ? row[8].trim() : null);
 
-        entries.add(priceEntry);
+          PriceEntry priceEntry = new PriceEntry();
+          priceEntry.setArticle(article);
+          priceEntry.setStore(store);
+          priceEntry.setPriceDate(extractDateFromFilename(file.getName()));
+          priceEntry.setRetailPrice(parseBigDecimal(row[6]));
+          priceEntry.setPricePerUnit(parseBigDecimal(row[7]));
+          priceEntry.setAnchorPrice(parseBigDecimal(row[10]));
+
+          entries.add(priceEntry);
+        } catch (Exception e) {
+          System.err.printf(
+              "❌ Failed to parse row %d in file %s: %s -> %s%n",
+              lineNumber, file.getName(), Arrays.toString(row), e.getMessage());
+          // Optionally: skip or rethrow
+        }
       }
     }
 
