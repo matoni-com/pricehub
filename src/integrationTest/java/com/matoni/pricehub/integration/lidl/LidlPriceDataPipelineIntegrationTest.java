@@ -58,8 +58,6 @@ public class LidlPriceDataPipelineIntegrationTest extends BaseIntegrationSuite {
 
     Set<String> processedZipNames =
         Set.of(
-            "Popis_cijena_po_trgovinama_na_dan_01_06_2025.zip",
-            "Popis_cijena_po_trgovinama_na_dan_02_06_2025.zip",
             "Popis_cijena_po_trgovinama_na_dan_15_05_2025.zip",
             "Popis_cijena_po_trgovinama_na_dan_16_05_2025.zip",
             "Popis_cijena_po_trgovinama_na_dan_17_05_2025.zip",
