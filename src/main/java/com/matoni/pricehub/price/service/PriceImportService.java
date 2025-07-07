@@ -1,7 +1,8 @@
-package com.matoni.pricehub.integration.lidl;
+package com.matoni.pricehub.price.service;
 
 import com.matoni.pricehub.article.entity.Article;
 import com.matoni.pricehub.article.service.ArticleService;
+import com.matoni.pricehub.integration.common.CsvParser;
 import com.matoni.pricehub.price.entity.PriceEntry;
 import com.matoni.pricehub.price.repository.PriceEntryRepository;
 import com.matoni.pricehub.retailchain.entity.RetailChain;
@@ -26,20 +27,31 @@ public class PriceImportService {
   private final ArticleService articleService;
   private final PriceEntryRepository priceEntryRepository;
 
-  public void importFromLidlCsv(File file, RetailChain chain)
+  public void importFromCsv(File file, RetailChain chain, String strategy)
       throws IOException, CsvValidationException {
 
     String storeCode = csvParser.extractStoreCode(file.getName());
+    System.out.printf("🧾 Store code for '%s' => %s%n", file.getName(), storeCode);
+
     String address = extractAddressFromFilename(file.getName());
     String city = extractCityFromFilename(file.getName());
     String postalCode = extractPostalCodeFromFilename(file.getName());
 
     Store store =
-        storeService.findOrCreate(storeCode, "Lidl " + storeCode, address, city, postalCode, chain);
+        storeService.findOrCreate(
+            storeCode, chain.getName() + " " + storeCode, address, city, postalCode, chain);
 
-    List<PriceEntry> rawEntries = csvParser.parse(file, store);
+    List<PriceEntry> rawEntries =
+        switch (strategy.toLowerCase()) {
+          case "lidl" -> csvParser.parseLidl(file, store);
+          case "spar" -> csvParser.parseSpar(file, store);
+          default -> throw new IllegalArgumentException("Unsupported parser strategy: " + strategy);
+        };
 
-    // Step 1: Prepare deduplicated articles
+    persistWithResolvedArticles(rawEntries, store);
+  }
+
+  private void persistWithResolvedArticles(List<PriceEntry> rawEntries, Store store) {
     List<Article> rawArticles = rawEntries.stream().map(PriceEntry::getArticle).distinct().toList();
 
     List<Article> resolvedArticles = articleService.findOrCreateAll(rawArticles);
@@ -48,7 +60,6 @@ public class PriceImportService {
         resolvedArticles.stream()
             .collect(Collectors.toMap(Article::getProductCode, Function.identity()));
 
-    // Step 2: Rebuild PriceEntry with real articles
     List<PriceEntry> finalEntries =
         rawEntries.stream()
             .map(
